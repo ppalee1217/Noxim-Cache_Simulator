@@ -39,11 +39,11 @@ VPATH := $(SRCDIR):$(subst $(SPACE),:,$(SUBDIRS))
 ##### RULES #####
 
 $(MODULE): $(OBJS)
-        $(CXX) $(LIBDIR) $^ $(LIBS) -o $@ 2>&1 | c++filt
+	$(CXX) $(LIBDIR) $^ $(LIBS) -o $@ 2>&1 | c++filt
 
 $(OBJDIR)/%.o: %.cpp
-        @mkdir -p $(dir $@)
-        $(CXX) $(CXXFLAGS) $(INCDIR) -c $< -o $@
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(INCDIR) -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(MODULE) *~
