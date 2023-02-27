@@ -2182,11 +2182,12 @@ void NoC::buildMesh()
 	    tile_coord.x = i;
 	    tile_coord.y = j;
 	    int tile_id = coord2Id(tile_coord);
+		cout << "ID: " << tile_id << endl;
 	    sprintf(tile_name, "Tile[%02d][%02d]_(#%d)", i, j, tile_id);
 	    t[i][j] = new Tile(tile_name, tile_id);
 
 	    // Tell to the router its coordinates
-	    t[i][j]->r->configure(j * GlobalParams::mesh_dim_x + i,
+	    t[i][j]->r->configure(tile_id,
 				  GlobalParams::stats_warm_up_time,
 				  GlobalParams::buffer_depth,
 				  grtable);
@@ -2195,11 +2196,9 @@ void NoC::buildMesh()
 					      GlobalParams::flit_size,
 					      string(GlobalParams::routing_algorithm),
 					      "default");
-					      
-
 
 	    // Tell to the PE its coordinates
-	    t[i][j]->pe->local_id = j * GlobalParams::mesh_dim_x + i;
+	    t[i][j]->pe->local_id = tile_id;
 
 	    // Check for traffic table availability
    		if (GlobalParams::traffic_distribution == TRAFFIC_TABLE_BASED)

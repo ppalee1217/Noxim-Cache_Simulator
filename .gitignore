@@ -1,0 +1,7 @@
+# executables
+bin/
+bin/build
+*.exe
+*.out
+# libraries
+bin/libs

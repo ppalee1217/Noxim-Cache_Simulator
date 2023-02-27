@@ -33,10 +33,11 @@ n_virtual_channels: 1
 #   NEGATIVE_FIRST
 #   ODD_EVEN
 #   DYAD
+#   HAMILTON
 #   TABLE_BASED
 # Each of the above labels should match a corresponding
 # implementation in the routingAlgorithms source code directory
-routing_algorithm: XY
+routing_algorithm: HAMILTON
 routing_table_filename: ""
 
 # Routing specific parameters
@@ -140,7 +141,7 @@ use_wirxsleep: false
 #   VERBOSE_LOW
 #   VERBOSE_MEDIUM
 #   VERBOSE_HIGH
-verbose_mode: VERBOSE_OFF
+verbose_mode: VERBOSE_HIGH
 
 # Trace
 trace_mode: false
@@ -160,7 +161,8 @@ probability_of_retransmission: 0.01
 #   TRAFFIC_BIT_REVERSAL
 #   TRAFFIC_SHUFFLE
 #   TRAFFIC_BUTTERFLY
-traffic_distribution: TRAFFIC_RANDOM
+#   TRAFFIC_TABLE_BASED
+traffic_distribution: TRAFFIC_TABLE_BASED
 # when traffic table based is specified, use the following
 # configuration file
 traffic_table_filename: "t.txt"
