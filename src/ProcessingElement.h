@@ -30,14 +30,31 @@ SC_MODULE(ProcessingElement)
     sc_in < Flit > flit_rx;	// The input channel
     sc_in < bool > req_rx;	// The request associated with the input channel
     sc_out < bool > ack_rx;	// The outgoing ack signal associated with the input channel
-    sc_out < TBufferFullStatus > buffer_full_status_rx;	
+    sc_out < TBufferFullStatus > buffer_full_status_rx;
 
     sc_out < Flit > flit_tx;	// The output channel
     sc_out < bool > req_tx;	// The request associated with the output channel
     sc_in < bool > ack_tx;	// The outgoing ack signal associated with the output channel
     sc_in < TBufferFullStatus > buffer_full_status_tx;
 
-    sc_in < int >free_slots_neighbor;
+    sc_in < int > free_slots_neighbor;
+    
+    // For data NoC - AddDate: 2023/04/29
+    sc_in < DataFlit > dataflit_rx;
+    sc_in < bool > datareq_rx;
+    sc_out < bool > dataack_rx;
+    sc_out < TBufferFullStatus > databuffer_full_status_rx;
+    sc_out < DataFlit > dataflit_tx;
+    sc_out < bool > datareq_tx;
+    sc_out < bool > dataack_tx;
+    sc_in < TBufferFullStatus > databuffer_full_status_tx;
+    sc_in < int > datafree_slots_neighbor;
+    bool datacurrent_level_rx, datacurrent_level_tx;
+    queue < Packet > datapacket_queue;
+    bool datatransmittedAtPreviousCycle;
+    void datarxProcess();
+    void datatxProcess();
+    DataFlit nextDataFlit();
 
     // Registers
     int local_id;		// Unique identification number
@@ -78,15 +95,22 @@ SC_MODULE(ProcessingElement)
 
     // Constructor
     SC_CTOR(ProcessingElement) {
-	SC_METHOD(rxProcess);
-	sensitive << reset;
-	sensitive << clock.pos();
+        SC_METHOD(rxProcess);
+        sensitive << reset;
+        sensitive << clock.pos();
 
-	SC_METHOD(txProcess);
-	sensitive << reset;
-	sensitive << clock.pos();
+        SC_METHOD(txProcess);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_METHOD(datarxProcess);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_METHOD(datatxProcess);
+        sensitive << reset;
+        sensitive << clock.pos();
     }
-
 };
 
 #endif

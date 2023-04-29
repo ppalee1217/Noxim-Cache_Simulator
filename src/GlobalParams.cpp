@@ -31,6 +31,7 @@ string GlobalParams::routing_algorithm;
 string GlobalParams::routing_table_filename;
 string GlobalParams::selection_strategy;
 double GlobalParams::packet_injection_rate;
+int GlobalParams::packet_injected_count;
 double GlobalParams::probability_of_retransmission;
 double GlobalParams::locality;
 string GlobalParams::traffic_distribution;

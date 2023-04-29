@@ -197,11 +197,18 @@ inline int coord2Id(const Coord & coord)
     int id;
     if (GlobalParams::topology == TOPOLOGY_MESH)
     {
+        
         /*Modify: coordinates distribute for HAMILTON routing - 2023/02/21*/
-        if (coord.y % 2 != 0)
-            id = ((coord.y + 1) * GlobalParams::mesh_dim_x) - 1 - coord.x;
+        if(GlobalParams::routing_algorithm == "HAMILTON")
+        {
+            if (coord.y % 2 != 0)
+                id = ((coord.y + 1) * GlobalParams::mesh_dim_x) - 1 - coord.x;
+            else
+                id = (coord.y * GlobalParams::mesh_dim_x) + coord.x;            
+        }
         else
             id = (coord.y * GlobalParams::mesh_dim_x) + coord.x;
+
         assert(id < GlobalParams::mesh_dim_x * GlobalParams::mesh_dim_y);
     }
     else

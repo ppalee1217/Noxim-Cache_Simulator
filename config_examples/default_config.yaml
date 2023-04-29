@@ -37,7 +37,7 @@ n_virtual_channels: 1
 #   TABLE_BASED
 # Each of the above labels should match a corresponding
 # implementation in the routingAlgorithms source code directory
-routing_algorithm: HAMILTON
+routing_algorithm: XY
 routing_table_filename: ""
 
 # Routing specific parameters
@@ -122,7 +122,7 @@ reset_time: 1000
 # overal simulation lenght, expressed in cycles
 simulation_time: 10000
 # collect stats after a given number of cycles
-stats_warm_up_time: 1000
+stats_warm_up_time: 0
 # power breakdown, nodes communication details
 detailed: false
 # stop after a given amount of load has been processed

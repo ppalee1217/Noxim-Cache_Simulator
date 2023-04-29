@@ -87,6 +87,86 @@ Flit ProcessingElement::nextFlit()
     return flit;
 }
 
+void ProcessingElement::datarxProcess()
+{
+    if (reset.read())
+    {
+        dataack_rx.write(0);
+        datacurrent_level_rx = 0;
+    } 
+    else 
+    {
+	    if (datareq_rx.read() == 1 - datacurrent_level_rx) 
+        {
+            DataFlit flit_tmp = dataflit_rx.read();
+            datacurrent_level_rx = 1 - datacurrent_level_rx;
+            dataack_rx.write(datacurrent_level_rx);
+        }
+    }
+}
+
+void ProcessingElement::datatxProcess()
+{
+    if (reset.read()) 
+    {
+        datareq_tx.write(0);
+        datacurrent_level_tx = 0;
+        datatransmittedAtPreviousCycle = false;
+    } 
+    else 
+    {
+	    Packet packet;
+
+        if (canShot(packet)) 
+        {
+            datapacket_queue.push(packet);
+            datatransmittedAtPreviousCycle = true;
+        } 
+        else datatransmittedAtPreviousCycle = false;
+
+        if (dataack_tx.read() == datacurrent_level_tx) 
+        {
+            if (!datapacket_queue.empty()) 
+            {
+                DataFlit flit = nextDataFlit();
+                dataflit_tx->write(flit);
+                datacurrent_level_tx = 1 - datacurrent_level_tx;
+                datareq_tx.write(datacurrent_level_tx);
+            }
+        }
+    }
+}
+
+DataFlit ProcessingElement::nextDataFlit()
+{
+    DataFlit flit;
+    Packet packet = datapacket_queue.front();
+
+    flit.src_id = packet.src_id;
+    flit.dst_id = packet.dst_id;
+    flit.vc_id = packet.vc_id;
+    flit.timestamp = packet.timestamp;
+    flit.sequence_no = packet.size - packet.flit_left;
+    flit.sequence_length = packet.size;
+
+    //  flit.payload     = DEFAULT_PAYLOAD;
+
+    if (packet.size == packet.flit_left)
+	    flit.flit_type = FLIT_TYPE_HEAD;
+    else if (packet.flit_left == 1)
+	    flit.flit_type = FLIT_TYPE_TAIL;
+    else
+	    flit.flit_type = FLIT_TYPE_BODY;
+
+    datapacket_queue.front().flit_left--;
+    
+    if (datapacket_queue.front().flit_left == 0)
+	    datapacket_queue.pop();
+
+    return flit;
+}
+
+
 bool ProcessingElement::canShot(Packet & packet)
 {
    // assert(false);
@@ -143,25 +223,37 @@ bool ProcessingElement::canShot(Packet & packet)
         }
 	}
     } else {			// Table based communication traffic
-	if (never_transmit)
-	    return false;
+        if (never_transmit)
+            return false;
 
-	bool use_pir = (transmittedAtPreviousCycle == false);
-	vector < pair < int, double > > dst_prob;
-	double threshold =
-	    traffic_table->getCumulativePirPor(local_id, (int) now, use_pir, dst_prob);
+        // bool use_pir = (transmittedAtPreviousCycle == false);
+        // vector < pair < int, double > > dst_prob;
+        // double threshold =
+        //     traffic_table->getCumulativePirPor(local_id, (int) now, use_pir, dst_prob);
 
-	double prob = (double) rand() / RAND_MAX;
-	shot = (prob < threshold);
-	if (shot) {
-	    for (unsigned int i = 0; i < dst_prob.size(); i++) {
-		if (prob < dst_prob[i].second) {
-                    int vc = randInt(0,GlobalParams::n_virtual_channels-1);
-		    packet.make(local_id, dst_prob[i].first, vc, now, getRandomSize());
-		    break;
-		}
-	    }
-	}
+        // double prob = (double) rand() / RAND_MAX;
+        // shot = (prob < threshold);
+        // if (shot) {
+        //     for (unsigned int i = 0; i < dst_prob.size(); i++) {
+        //         if (prob < dst_prob[i].second) {
+        //             int vc = randInt(0,GlobalParams::n_virtual_channels-1);
+        //             packet.make(local_id, dst_prob[i].first, vc, now, getRandomSize());
+        //             // cout << "Make Success >>> Src: " << local_id << " Dst: " << dst_prob[i].first << endl;
+        //             break;
+        //         }
+        //     }
+        // }
+
+        int dstfromTable;
+        int remaining_traffic = traffic_table->getPacketinCommunication(local_id, dstfromTable);
+        // cout << " / Remaining Traffic in PE: " << remaining_traffic << endl;
+        if (remaining_traffic > 0)
+        {
+            int vc = randInt(0,GlobalParams::n_virtual_channels-1);
+            packet.make(local_id, dstfromTable, vc, now, getRandomSize());
+            shot = true;
+        }
+        else shot = false;
     }
 
     return shot;

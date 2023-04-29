@@ -20,7 +20,7 @@ using namespace std;
 
 struct CommHistory {
     int src_id;
-     vector < double >delays;
+    vector < double >delays;
     unsigned int total_received_flits;
     double last_received_flit_time;
 };

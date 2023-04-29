@@ -141,6 +141,32 @@ struct Flit {
 		&& flit.use_low_voltage_path == use_low_voltage_path);
 }};
 
+// Struct for Data NoC - AddDate: 2023/04/29
+struct DataFlit
+{
+    int src_id;
+    int dst_id;
+    int vc_id;
+    FlitType flit_type;
+    int sequence_no;
+    int sequence_length;
+    Payload payload;        // need to fix payload size
+    double timestamp;
+
+    inline bool operator == (const DataFlit & flit) const
+    {
+        return (
+            flit.src_id == src_id &&
+            flit.dst_id == dst_id &&
+            flit.vc_id == vc_id &&
+            flit.sequence_no == sequence_no &&
+            flit.sequence_length == sequence_length &&
+            flit.payload == payload &&
+            flit.timestamp == timestamp
+        );
+    }
+};
+
 
 typedef struct 
 {

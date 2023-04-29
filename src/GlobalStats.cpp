@@ -224,6 +224,7 @@ unsigned int GlobalStats::getReceivedPackets()
 	    n += noc->core[y]->r->stats.getReceivedPackets();
     }
 
+	// cout << "\n********Global Received Packets: " << n << endl;
     return n;
 }
 
@@ -251,6 +252,7 @@ unsigned int GlobalStats::getReceivedFlits()
 	}
     }
 
+	// cout << "\n********Global Received Flits: " << n << endl;
     return n;
 }
 

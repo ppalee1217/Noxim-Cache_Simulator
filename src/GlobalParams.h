@@ -156,6 +156,7 @@ struct GlobalParams {
     static string routing_table_filename;
     static string selection_strategy;
     static double packet_injection_rate;
+    static int packet_injected_count;
     static double probability_of_retransmission;
     static double locality;
     static string traffic_distribution;
