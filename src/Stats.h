@@ -37,6 +37,9 @@ class Stats {
     // Access point for stats update
     void receivedFlit(const double arrival_time, const Flit & flit);
 
+    // Data NoC - AddDate: 2023/04/29
+    void receivedFlit(const double arrival_time, const DataFlit & flit);
+
     // Returns the average delay (cycles) for the current node as
     // regards to the communication whose source is src_id
     double getAverageDelay(const int src_id);

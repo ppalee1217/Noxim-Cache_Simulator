@@ -100,6 +100,51 @@ inline ostream & operator <<(ostream & os, const Flit & flit)
     return os;
 }
 
+// Data NoC output overloading - AddDate: 2023/04/29
+inline ostream & operator <<(ostream & os, const DataFlit & flit)
+{
+
+    if (GlobalParams::verbose_mode == VERBOSE_HIGH) {
+
+	os << "### FLIT ###" << endl;
+	os << "Source Tile[" << flit.src_id << "]" << endl;
+	os << "Destination Tile[" << flit.dst_id << "]" << endl;
+	switch (flit.flit_type) {
+	case FLIT_TYPE_HEAD:
+	    os << "Flit Type is HEAD" << endl;
+	    break;
+	case FLIT_TYPE_BODY:
+	    os << "Flit Type is BODY" << endl;
+	    break;
+	case FLIT_TYPE_TAIL:
+	    os << "Flit Type is TAIL" << endl;
+	    break;
+	}
+	os << "Sequence no. " << flit.sequence_no << endl;
+	os << "Payload printing not implemented (yet)." << endl;
+	os << "Unix timestamp at packet generation " << flit.
+	    timestamp << endl;
+    } else {
+	os << "(";
+	switch (flit.flit_type) {
+	case FLIT_TYPE_HEAD:
+	    os << "H";
+	    break;
+	case FLIT_TYPE_BODY:
+	    os << "B";
+	    break;
+	case FLIT_TYPE_TAIL:
+	    os << "T";
+	    break;
+	}
+
+	os <<  flit.sequence_no << ", " << flit.src_id << "->" << flit.dst_id << " VC " << flit.vc_id << ")";
+    }
+
+    return os;
+}
+
+
 inline ostream & operator <<(ostream & os,
 			     const ChannelStatus & status)
 {
@@ -148,6 +193,14 @@ inline void sc_trace(sc_trace_file * &tf, const Flit & flit, string & name)
     sc_trace(tf, flit.sequence_no, name + ".sequence_no");
     sc_trace(tf, flit.timestamp, name + ".timestamp");
     sc_trace(tf, flit.hop_no, name + ".hop_no");
+}
+
+inline void sc_trace(sc_trace_file * &tf, const DataFlit & flit, string & name)
+{
+    sc_trace(tf, flit.src_id, name + ".src_id");
+    sc_trace(tf, flit.dst_id, name + ".dst_id");
+    sc_trace(tf, flit.sequence_no, name + ".sequence_no");
+    sc_trace(tf, flit.timestamp, name + ".timestamp");
 }
 
 inline void sc_trace(sc_trace_file * &tf, const NoP_data & NoP_data, string & name)

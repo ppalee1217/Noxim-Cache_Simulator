@@ -73,6 +73,14 @@ SC_MODULE(NoC)
     sc_signal<TBufferFullStatus> *buffer_full_status_to_hub;
 
 
+    // Data NoC - AddDate: 2023/04/29
+    sc_signal_NSWEH< bool > **datareq;
+    sc_signal_NSWEH< bool > **dataack;
+    sc_signal_NSWEH< TBufferFullStatus > **databuffer_full_status;
+    sc_signal_NSWEH< DataFlit > **dataflit;
+    sc_signal_NSWE< int > **datafree_slots;
+    sc_signal_NSWE< NoP_data > **datanop_data;
+
 
     // Matrix of tiles
     Tile ***t;

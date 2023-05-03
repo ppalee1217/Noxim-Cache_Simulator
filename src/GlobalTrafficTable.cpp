@@ -34,11 +34,11 @@ bool GlobalTrafficTable::load(const char *fname)
 				int src, dst;	// Mandatory
 				double pir, por;
 				int t_on, t_off, t_period;
-				int count;
+				int count, isReqt;
 
 				int params =
-					sscanf(line, "%d %d %d %lf %lf %d %d %d", &src, &dst, &count, &pir,
-						&por, &t_on, &t_off, &t_period);
+					sscanf(line, "%d %d %d %d %lf %lf %d %d %d", &src, &dst, &count, &isReqt, 
+						&pir, &por, &t_on, &t_off, &t_period);
 				if (params >= 2) {
 					// Create a communication from the parameters read on the line
 					Communication communication;
@@ -49,27 +49,29 @@ bool GlobalTrafficTable::load(const char *fname)
 
 					if (params >= 3) communication.count = count;
 
+					if (params >= 4) communication.isReqt = isReqt;
+
 					// Custom PIR
-					if (params >= 4 && pir >= 0 && pir <= 1)
+					if (params >= 5 && pir >= 0 && pir <= 1)
 					communication.pir = pir;
 					else
 					communication.pir =
 						GlobalParams::packet_injection_rate;
 
 					// Custom POR
-					if (params >= 5 && por >= 0 && por <= 1)
+					if (params >= 6 && por >= 0 && por <= 1)
 					communication.por = por;
 					else
 					communication.por = communication.pir;	// GlobalParams::probability_of_retransmission;
 
 					// Custom Ton
-					if (params >= 6 && t_on >= 0)
+					if (params >= 7 && t_on >= 0)
 					communication.t_on = t_on;
 					else
 					communication.t_on = 0;
 
 					// Custom Toff
-					if (params >= 7 && t_off >= 0) {
+					if (params >= 8 && t_off >= 0) {
 					assert(t_off > t_on);
 					communication.t_off = t_off;
 					} else
@@ -78,7 +80,7 @@ bool GlobalTrafficTable::load(const char *fname)
 						GlobalParams::simulation_time;
 
 					// Custom Tperiod
-					if (params >= 8 && t_period > 0) {
+					if (params >= 9 && t_period > 0) {
 					assert(t_period > t_off);
 					communication.t_period = t_period;
 					} else
@@ -119,16 +121,15 @@ double GlobalTrafficTable::getCumulativePirPor(const int src_id,
 }
 
 // Get each communication packet counts - AddDate: 2023/04/02 
-int GlobalTrafficTable::getPacketinCommunication(const int src_id, int &dst_id)
+int GlobalTrafficTable::getPacketinCommunication(const int src_id, int &dst_id, int isReqt)
 {
 	for(unsigned int i = 0; i < traffic_table.size(); i++)
 	{
-		// cout << "Taffic [ " << i+1 << " ]: Src=" << traffic_table[ i ].src << " Dst=" << traffic_table[ i ].dst << " Before--Count=" << traffic_table[ i ].count; 
-		if (traffic_table[ i ].src == src_id && traffic_table[ i ].count > 0)
+		if (traffic_table[ i ].src == src_id && traffic_table[ i ].count > 0 && traffic_table[ i ].isReqt == isReqt)
 		{
 			traffic_table[ i ].count = traffic_table[ i ].count - 1;
-			// cout << "->After--Count=" << traffic_table[ i ].count << endl;
 			dst_id = traffic_table[ i ].dst;
+			cout << "\n!!! NoC is " << isReqt << " , src is " << src_id << endl;  
 			return traffic_table[ i ].count + 1;
 		}
 	}

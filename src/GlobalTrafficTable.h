@@ -29,6 +29,7 @@ struct Communication {
   int t_period;   // Period after which activity starts again
 
   int count;      // Packet count - AddDate: 2023/04/02
+  int isReqt;     // Packet inject to Reqt / Data NoC - AddDate: 2023/05/02
 };
 
 class GlobalTrafficTable {
@@ -52,7 +53,7 @@ class GlobalTrafficTable {
   // table
   int occurrencesAsSource(const int src_id);
 
-  int getPacketinCommunication(const int src_id, int &dst_id);
+  int getPacketinCommunication(const int src_id, int &dst_id, int isReqt);
 
   private:
 

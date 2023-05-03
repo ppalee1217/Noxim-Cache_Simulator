@@ -44,11 +44,14 @@ SC_MODULE(ProcessingElement)
     sc_in < bool > datareq_rx;
     sc_out < bool > dataack_rx;
     sc_out < TBufferFullStatus > databuffer_full_status_rx;
+
     sc_out < DataFlit > dataflit_tx;
     sc_out < bool > datareq_tx;
-    sc_out < bool > dataack_tx;
+    sc_in < bool > dataack_tx;
     sc_in < TBufferFullStatus > databuffer_full_status_tx;
+
     sc_in < int > datafree_slots_neighbor;
+
     bool datacurrent_level_rx, datacurrent_level_tx;
     queue < Packet > datapacket_queue;
     bool datatransmittedAtPreviousCycle;
@@ -66,7 +69,7 @@ SC_MODULE(ProcessingElement)
     // Functions
     void rxProcess();		// The receiving process
     void txProcess();		// The transmitting process
-    bool canShot(Packet & packet);	// True when the packet must be shot
+    bool canShot(Packet & packet, int isReqt);	// True when the packet must be shot
     Flit nextFlit();	// Take the next flit of the current packet
     Packet trafficTest();	// used for testing traffic
     Packet trafficRandom();	// Random destination distribution
@@ -92,6 +95,8 @@ SC_MODULE(ProcessingElement)
     int roulett();
     int findRandomDestination(int local_id,int hops);
     unsigned int getQueueSize() const;
+
+    unsigned int getDataQueueSize() const;
 
     // Constructor
     SC_CTOR(ProcessingElement) {

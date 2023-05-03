@@ -4,6 +4,7 @@
 #include "SelectionStrategy.h"
 #include "SelectionStrategies.h"
 #include "../Router.h"
+#include "../DataRouter.h"
 
 using namespace std;
 
@@ -11,6 +12,8 @@ class Selection_NOP : SelectionStrategy {
 	public:
         int apply(Router * router, const vector < int >&directions, const RouteData & route_data);
         void perCycleUpdate(Router * router);
+		int apply(DataRouter * router, const vector < int >&directions, const RouteData & route_data);
+        void perCycleUpdate(DataRouter * router);
 
 		static Selection_NOP * getInstance();
 

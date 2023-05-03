@@ -4,6 +4,7 @@
 #include "RoutingAlgorithm.h"
 #include "RoutingAlgorithms.h"
 #include "../Router.h"
+#include "../DataRouter.h"
 
 #include "../GlobalRoutingTable.h"
 
@@ -12,6 +13,7 @@ using namespace std;
 class Routing_TABLE_BASED : RoutingAlgorithm {
 	public:
 		vector<int> route(Router * router, const RouteData & routeData);
+		vector<int> route(DataRouter * router, const RouteData & routeData);
 
 		static Routing_TABLE_BASED * getInstance();
 

@@ -4,12 +4,14 @@
 #include "RoutingAlgorithm.h"
 #include "RoutingAlgorithms.h"
 #include "../Router.h"
+#include "../DataRouter.h"
 
 using namespace std;
 
 class Routing_ODD_EVEN : RoutingAlgorithm {
 	public:
 		vector<int> route(Router * router, const RouteData & routeData);
+		vector<int> route(DataRouter * router, const RouteData & routeData);
 
 		static Routing_ODD_EVEN * getInstance();
         inline string name() { return "Routing_ODD_EVEN";};

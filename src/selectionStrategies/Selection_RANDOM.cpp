@@ -20,3 +20,16 @@ int Selection_RANDOM::apply(Router * router, const vector < int >&directions, co
 }
 
 void Selection_RANDOM::perCycleUpdate(Router * router){ }
+
+
+
+// Data NoC - AddDate: 2023/04/29
+int Selection_RANDOM::apply(DataRouter * router, const vector < int >&directions, const RouteData & route_data){
+    assert(directions.size()!=0);
+
+    int output = directions[rand() % directions.size()];
+    return output;
+
+}
+
+void Selection_RANDOM::perCycleUpdate(DataRouter * router){ }

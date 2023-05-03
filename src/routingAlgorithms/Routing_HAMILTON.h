@@ -4,6 +4,7 @@
 #include "RoutingAlgorithm.h"
 #include "RoutingAlgorithms.h"
 #include "../Router.h"
+#include "../DataRouter.h"
 #define name() "Routing_HAMILTON"
 
 using namespace std;
@@ -11,6 +12,7 @@ using namespace std;
 class Routing_HAMILTON : RoutingAlgorithm {
 	public:
 		vector<int> route(Router * router, const RouteData & routeData);
+		vector<int> route(DataRouter * router, const RouteData & routeData);
 
 		static Routing_HAMILTON * getInstance();
 

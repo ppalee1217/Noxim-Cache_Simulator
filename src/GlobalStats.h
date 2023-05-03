@@ -25,30 +25,30 @@ class GlobalStats {
     GlobalStats(const NoC * _noc);
 
     // Returns the aggregated average delay (cycles)
-    double getAverageDelay();
+    double getAverageDelay(int isReqt);
 
     // Returns the aggragated average delay (cycles) for communication src_id->dst_id
     double getAverageDelay(const int src_id, const int dst_id);
 
     // Returns the max delay
-    double getMaxDelay();
+    double getMaxDelay(int isReqt);
 
     // Returns the max delay (cycles) experimented by destination
     // node_id. Returns -1 if node_id is not destination of any
     // communication
-    double getMaxDelay(const int node_id);
+    double getMaxDelay(const int node_id, int isReqt);
 
     // Returns the max delay (cycles) for communication src_id->dst_id
-    double getMaxDelay(const int src_id, const int dst_id);
+    // double getMaxDelay(const int src_id, const int dst_id);
 
     // Returns tha matrix of max delay for any node of the network
-     vector < vector < double > > getMaxDelayMtx();
+     vector < vector < double > > getMaxDelayMtx(int isReqt);
 
     // Returns the aggregated average throughput (flits/cycles)
-    double getAggregatedThroughput();
+    double getAggregatedThroughput(int isReqt);
 
     // Returns the average throughput per IP (flit/cycles/IP)
-    double getThroughput();
+    double getThroughput(int isReqt);
 
     // Returns the average throughput considering only a active IP (flit/cycles/IP)
     double getActiveThroughput();
@@ -58,10 +58,10 @@ class GlobalStats {
     double getAverageThroughput(const int src_id, const int dst_id);
 
     // Returns the total number of received packets
-    unsigned int getReceivedPackets();
+    unsigned int getReceivedPackets(int isReqt);
 
     // Returns the total number of received flits
-    unsigned int getReceivedFlits();
+    unsigned int getReceivedFlits(int isReqt);
 
     // number of packets that used the wireless network
     unsigned int getWirelessPackets();
@@ -71,24 +71,24 @@ class GlobalStats {
      vector < vector < unsigned long > > getRoutedFlitsMtx();
 
     // Returns the total dyamic power
-    double getDynamicPower();
+    double getDynamicPower(int isReqt);
     // Returns the total static power
-    double getStaticPower();
+    double getStaticPower(int isReqt);
 
     // Returns the total power
-    double getTotalPower() { return getDynamicPower()+getStaticPower(); }
+    double getTotalPower(int isReqt) { return getDynamicPower(isReqt)+getStaticPower(isReqt); }
 
     // Shows global statistics
     void showStats(std::ostream & out = std::cout, bool detailed = false);
 
-    void showBufferStats(std::ostream & out);
+    void showBufferStats(std::ostream & out, int isReqt);
 
 
-    void showPowerBreakDown(std::ostream & out);
+    void showPowerBreakDown(std::ostream & out, int isReqt);
 
     void showPowerManagerStats(std::ostream & out);
 
-    double getReceivedIdealFlitRatio();
+    double getReceivedIdealFlitRatio(int isReqt);
 
 
 

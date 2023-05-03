@@ -39,7 +39,7 @@ void ProcessingElement::txProcess()
     } else {
 	Packet packet;
 
-	if (canShot(packet)) {
+	if (canShot(packet, 1)) {
 	    packet_queue.push(packet);
 	    transmittedAtPreviousCycle = true;
 	} else
@@ -117,7 +117,7 @@ void ProcessingElement::datatxProcess()
     {
 	    Packet packet;
 
-        if (canShot(packet)) 
+        if (canShot(packet, 0)) 
         {
             datapacket_queue.push(packet);
             datatransmittedAtPreviousCycle = true;
@@ -167,22 +167,9 @@ DataFlit ProcessingElement::nextDataFlit()
 }
 
 
-bool ProcessingElement::canShot(Packet & packet)
+bool ProcessingElement::canShot(Packet & packet, int isReqt)
 {
-   // assert(false);
     if(never_transmit) return false;
-   
-    //if(local_id!=16) return false;
-    /* DEADLOCK TEST 
-	double current_time = sc_time_stamp().to_double() / GlobalParams::clock_period_ps;
-
-	if (current_time >= 4100) 
-	{
-	    //if (current_time==3500)
-	         //cout << name() << " IN CODA " << packet_queue.size() << endl;
-	    return false;
-	}
-	//*/
 
 #ifdef DEADLOCK_AVOIDANCE
     if (local_id%2==0)
@@ -193,60 +180,46 @@ bool ProcessingElement::canShot(Packet & packet)
 
     double now = sc_time_stamp().to_double() / GlobalParams::clock_period_ps;
 
-    if (GlobalParams::traffic_distribution != TRAFFIC_TABLE_BASED) {
-	if (!transmittedAtPreviousCycle)
-	    threshold = GlobalParams::packet_injection_rate;
-	else
-	    threshold = GlobalParams::probability_of_retransmission;
+    if (GlobalParams::traffic_distribution != TRAFFIC_TABLE_BASED) 
+    {
+        if (!transmittedAtPreviousCycle)
+            threshold = GlobalParams::packet_injection_rate;
+        else
+            threshold = GlobalParams::probability_of_retransmission;
 
-	shot = (((double) rand()) / RAND_MAX < threshold);
-	if (shot) {
-	    if (GlobalParams::traffic_distribution == TRAFFIC_RANDOM)
-		    packet = trafficRandom();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_TRANSPOSE1)
-		    packet = trafficTranspose1();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_TRANSPOSE2)
-    		packet = trafficTranspose2();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_BIT_REVERSAL)
-		    packet = trafficBitReversal();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_SHUFFLE)
-		    packet = trafficShuffle();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_BUTTERFLY)
-		    packet = trafficButterfly();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_LOCAL)
-		    packet = trafficLocal();
-        else if (GlobalParams::traffic_distribution == TRAFFIC_ULOCAL)
-		    packet = trafficULocal();
-        else {
-            cout << "Invalid traffic distribution: " << GlobalParams::traffic_distribution << endl;
-            exit(-1);
+        shot = (((double) rand()) / RAND_MAX < threshold);
+        if (shot) {
+            if (GlobalParams::traffic_distribution == TRAFFIC_RANDOM)
+                packet = trafficRandom();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_TRANSPOSE1)
+                packet = trafficTranspose1();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_TRANSPOSE2)
+                packet = trafficTranspose2();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_BIT_REVERSAL)
+                packet = trafficBitReversal();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_SHUFFLE)
+                packet = trafficShuffle();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_BUTTERFLY)
+                packet = trafficButterfly();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_LOCAL)
+                packet = trafficLocal();
+            else if (GlobalParams::traffic_distribution == TRAFFIC_ULOCAL)
+                packet = trafficULocal();
+            else {
+                cout << "Invalid traffic distribution: " << GlobalParams::traffic_distribution << endl;
+                exit(-1);
+            }
         }
-	}
-    } else {			// Table based communication traffic
+    } 
+    else 
+    {	
+        // Table based communication traffic
         if (never_transmit)
             return false;
 
-        // bool use_pir = (transmittedAtPreviousCycle == false);
-        // vector < pair < int, double > > dst_prob;
-        // double threshold =
-        //     traffic_table->getCumulativePirPor(local_id, (int) now, use_pir, dst_prob);
-
-        // double prob = (double) rand() / RAND_MAX;
-        // shot = (prob < threshold);
-        // if (shot) {
-        //     for (unsigned int i = 0; i < dst_prob.size(); i++) {
-        //         if (prob < dst_prob[i].second) {
-        //             int vc = randInt(0,GlobalParams::n_virtual_channels-1);
-        //             packet.make(local_id, dst_prob[i].first, vc, now, getRandomSize());
-        //             // cout << "Make Success >>> Src: " << local_id << " Dst: " << dst_prob[i].first << endl;
-        //             break;
-        //         }
-        //     }
-        // }
-
         int dstfromTable;
-        int remaining_traffic = traffic_table->getPacketinCommunication(local_id, dstfromTable);
-        // cout << " / Remaining Traffic in PE: " << remaining_traffic << endl;
+        int remaining_traffic = traffic_table->getPacketinCommunication(local_id, dstfromTable, isReqt);
+        cout << "in NoC " << isReqt << " remaining Traffic in PE: " << remaining_traffic << endl;
         if (remaining_traffic > 0)
         {
             int vc = randInt(0,GlobalParams::n_virtual_channels-1);
@@ -582,5 +555,11 @@ int ProcessingElement::getRandomSize()
 unsigned int ProcessingElement::getQueueSize() const
 {
     return packet_queue.size();
+}
+
+// Data NoC - AddDate: 2023/04/30
+unsigned int ProcessingElement::getDataQueueSize() const
+{
+    return datapacket_queue.size();
 }
 

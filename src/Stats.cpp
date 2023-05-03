@@ -45,6 +45,35 @@ void Stats::receivedFlit(const double arrival_time,
     chist[i].last_received_flit_time = arrival_time - warm_up_time;
 }
 
+// Data NoC - AddDate:2023/04/29
+void Stats::receivedFlit(const double arrival_time,
+			      const DataFlit & flit)
+{
+    if (arrival_time - GlobalParams::reset_time < warm_up_time)
+		return;
+
+    int i = searchCommHistory(flit.src_id);
+
+    if (i == -1) {
+		// first flit received from a given source
+		// initialize CommHist structure
+		CommHistory ch;
+
+		ch.src_id = flit.src_id;
+		ch.total_received_flits = 0;
+		chist.push_back(ch);
+
+		i = chist.size() - 1;
+    }
+
+    if (flit.flit_type == FLIT_TYPE_HEAD)
+		chist[i].delays.push_back(arrival_time - flit.timestamp);
+
+    chist[i].total_received_flits++;
+    chist[i].last_received_flit_time = arrival_time - warm_up_time;
+}
+
+
 double Stats::getAverageDelay(const int src_id)
 {
     double sum = 0.0;
