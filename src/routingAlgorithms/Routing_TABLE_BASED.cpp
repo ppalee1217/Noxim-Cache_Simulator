@@ -29,3 +29,25 @@ vector<int> Routing_TABLE_BASED::route(Router * router, const RouteData & routeD
 
     return admissibleOutputsSet2Vector(ao);
 }
+
+
+
+// Data NoC - AddDate: 2023/04/29
+vector<int> Routing_TABLE_BASED::route(DataRouter * router, const RouteData & routeData)
+{
+    Coord current = id2Coord(routeData.current_id);
+    Coord destination = id2Coord(routeData.dst_id);
+
+    AdmissibleOutputs ao = router->routing_table.getAdmissibleOutputs(routeData.dir_in, routeData.dst_id);
+
+    if (ao.size() == 0) {
+        LOG << "dir: " << routeData.dir_in << ", (" << current.x << "," << current.
+            y << ") --> " << "(" << destination.x << "," << destination.
+            y << ")" << endl << routeData.current_id << "->" <<
+            routeData.dst_id << endl;
+    }
+
+    assert(ao.size() > 0);
+
+    return admissibleOutputsSet2Vector(ao);
+}

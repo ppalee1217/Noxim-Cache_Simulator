@@ -105,162 +105,162 @@ void Router::txProcess()
   else 
     { 
       // 1st phase: Reservation
-      for (int j = 0; j < DIRECTIONS + 2; j++) 
-	{
-	  int i = (start_from_port + j) % (DIRECTIONS + 2);
+		for (int j = 0; j < DIRECTIONS + 2; j++) 
+		{
+			int i = (start_from_port + j) % (DIRECTIONS + 2);
 
-	  for (int k = 0;k < GlobalParams::n_virtual_channels; k++)
-	  {
-	      int vc = (start_from_vc[i]+k)%(GlobalParams::n_virtual_channels);
-	      
-	      // Uncomment to enable deadlock checking on buffers. 
-	      // Please also set the appropriate threshold.
-	      // buffer[i].deadlockCheck();
+			for (int k = 0;k < GlobalParams::n_virtual_channels; k++)
+			{
+				int vc = (start_from_vc[i]+k)%(GlobalParams::n_virtual_channels);
+				
+				// Uncomment to enable deadlock checking on buffers. 
+				// Please also set the appropriate threshold.
+				// buffer[i].deadlockCheck();
 
-	      if (!buffer[i][vc].IsEmpty()) 
-	      {
-		  Flit flit = buffer[i][vc].Front();
-		  power.bufferRouterFront();
+				if (!buffer[i][vc].IsEmpty()) 
+				{
+					Flit flit = buffer[i][vc].Front();
+					power.bufferRouterFront();
 
-		  if (flit.flit_type == FLIT_TYPE_HEAD) 
-		    {
-		      // prepare data for routing
-		      RouteData route_data;
-		      route_data.current_id = local_id;
-		      //LOG<< "current_id= "<< route_data.current_id <<" for sending " << flit << endl;
-		      route_data.src_id = flit.src_id;
-		      route_data.dst_id = flit.dst_id;
-		      route_data.dir_in = i;
-		      route_data.vc_id = flit.vc_id;
+					if (flit.flit_type == FLIT_TYPE_HEAD) 
+					{
+						// prepare data for routing
+						RouteData route_data;
+						route_data.current_id = local_id;
+						//LOG<< "current_id= "<< route_data.current_id <<" for sending " << flit << endl;
+						route_data.src_id = flit.src_id;
+						route_data.dst_id = flit.dst_id;
+						route_data.dir_in = i;
+						route_data.vc_id = flit.vc_id;
 
-		      // TODO: see PER POSTERI (adaptive routing should not recompute route if already reserved)
-		      int o = route(route_data);
+						// TODO: see PER POSTERI (adaptive routing should not recompute route if already reserved)
+						int o = route(route_data);
 
-		      // manage special case of target hub not directly connected to destination
-		      if (o>=DIRECTION_HUB_RELAY)
-			  {
-		      	Flit f = buffer[i][vc].Pop();
-		      	f.hub_relay_node = o-DIRECTION_HUB_RELAY;
-		      	buffer[i][vc].Push(f);
-		      	o = DIRECTION_HUB;
-			  }
+						// manage special case of target hub not directly connected to destination
+						if (o>=DIRECTION_HUB_RELAY)
+						{
+							Flit f = buffer[i][vc].Pop();
+							f.hub_relay_node = o-DIRECTION_HUB_RELAY;
+							buffer[i][vc].Push(f);
+							o = DIRECTION_HUB;
+						}
 
-		      TReservation r;
-		      r.input = i;
-		      r.vc = vc;
+						TReservation r;
+						r.input = i;
+						r.vc = vc;
 
-		      LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
+						LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
 
-		      int rt_status = reservation_table.checkReservation(r,o);
+						int rt_status = reservation_table.checkReservation(r,o);
 
-		      if (rt_status == RT_AVAILABLE) 
-		      {
-			  LOG << " reserving direction " << o << " for flit " << flit << endl;
-			  reservation_table.reserve(r, o);
-		      }
-		      else if (rt_status == RT_ALREADY_SAME)
-		      {
-			  LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
-		      }
-		      else if (rt_status == RT_OUTVC_BUSY)
-		      {
-			  LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
-		      }
-		      else if (rt_status == RT_ALREADY_OTHER_OUT)
-		      {
-			  LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
-		      }
-		      else assert(false); // no meaningful status here
-		    }
+						if (rt_status == RT_AVAILABLE) 
+						{
+						LOG << " reserving direction " << o << " for flit " << flit << endl;
+						reservation_table.reserve(r, o);
+						}
+						else if (rt_status == RT_ALREADY_SAME)
+						{
+						LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
+						}
+						else if (rt_status == RT_OUTVC_BUSY)
+						{
+						LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
+						}
+						else if (rt_status == RT_ALREADY_OTHER_OUT)
+						{
+						LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
+						}
+						else assert(false); // no meaningful status here
+					}
+				}
+			}
+			start_from_vc[i] = (start_from_vc[i]+1)%GlobalParams::n_virtual_channels;
 		}
-	  }
-	    start_from_vc[i] = (start_from_vc[i]+1)%GlobalParams::n_virtual_channels;
-	}
 
-      start_from_port = (start_from_port + 1) % (DIRECTIONS + 2);
+		start_from_port = (start_from_port + 1) % (DIRECTIONS + 2);
 
-      // 2nd phase: Forwarding
-      //if (local_id==6) LOG<<"*TX*****local_id="<<local_id<<"__ack_tx[0]= "<<ack_tx[0].read()<<endl;
-      for (int i = 0; i < DIRECTIONS + 2; i++) 
-      { 
-	  vector<pair<int,int> > reservations = reservation_table.getReservations(i);
+		// 2nd phase: Forwarding
+		//if (local_id==6) LOG<<"*TX*****local_id="<<local_id<<"__ack_tx[0]= "<<ack_tx[0].read()<<endl;
+		for (int i = 0; i < DIRECTIONS + 2; i++) 
+		{ 
+			vector<pair<int,int> > reservations = reservation_table.getReservations(i);
 	  
-	  if (reservations.size()!=0)
-	  {
+			if (reservations.size()!=0)
+			{
 
-	      int rnd_idx = rand()%reservations.size();
+				int rnd_idx = rand()%reservations.size();
 
-	      int o = reservations[rnd_idx].first;
-	      int vc = reservations[rnd_idx].second;
-	     // LOG<< "found reservation from input= " << i << "_to output= "<<o<<endl;
-	      // can happen
-	      if (!buffer[i][vc].IsEmpty())  
-	      {
-		  // power contribution already computed in 1st phase
-		  Flit flit = buffer[i][vc].Front();
-		  //LOG<< "*****TX***Direction= "<<i<< "************"<<endl;
-		  //LOG<<"_cl_tx="<<current_level_tx[o]<<"req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
+				int o = reservations[rnd_idx].first;
+				int vc = reservations[rnd_idx].second;
+				// LOG<< "found reservation from input= " << i << "_to output= "<<o<<endl;
+				// can happen
+				if (!buffer[i][vc].IsEmpty())  
+				{
+				// power contribution already computed in 1st phase
+				Flit flit = buffer[i][vc].Front();
+				//LOG<< "*****TX***Direction= "<<i<< "************"<<endl;
+				//LOG<<"_cl_tx="<<current_level_tx[o]<<"req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
 		  
-		  if ( (current_level_tx[o] == ack_tx[o].read()) &&
-		       (buffer_full_status_tx[o].read().mask[vc] == false) ) 
-		  {
-		      //if (GlobalParams::verbose_mode > VERBOSE_OFF) 
-		      LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
+				if ( (current_level_tx[o] == ack_tx[o].read()) &&
+					(buffer_full_status_tx[o].read().mask[vc] == false) ) 
+				{
+					//if (GlobalParams::verbose_mode > VERBOSE_OFF) 
+					LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
 
-		      flit_tx[o].write(flit);
-		      current_level_tx[o] = 1 - current_level_tx[o];
-		      req_tx[o].write(current_level_tx[o]);
-		      buffer[i][vc].Pop();
+					flit_tx[o].write(flit);
+					current_level_tx[o] = 1 - current_level_tx[o];
+					req_tx[o].write(current_level_tx[o]);
+					buffer[i][vc].Pop();
 
-		      if (flit.flit_type == FLIT_TYPE_TAIL)
-		      {
-			  TReservation r;
-			  r.input = i;
-			  r.vc = vc;
-			  reservation_table.release(r,o);
-		      }
+					if (flit.flit_type == FLIT_TYPE_TAIL)
+					{
+						TReservation r;
+						r.input = i;
+						r.vc = vc;
+						reservation_table.release(r,o);
+					}
 
-		      /* Power & Stats ------------------------------------------------- */
-		      if (o == DIRECTION_HUB) power.r2hLink();
-		      else
-			  power.r2rLink();
+					/* Power & Stats ------------------------------------------------- */
+					if (o == DIRECTION_HUB) power.r2hLink();
+					else
+						power.r2rLink();
 
-		      power.bufferRouterPop();
-		      power.crossBar();
+					power.bufferRouterPop();
+					power.crossBar();
 
-		      if (o == DIRECTION_LOCAL) 
-		      {
-			  power.networkInterface();
-			  LOG << "Consumed flit " << flit << endl;
-			  stats.receivedFlit(sc_time_stamp().to_double() / GlobalParams::clock_period_ps, flit);
-			  if (GlobalParams:: max_volume_to_be_drained) 
-			  {
-			      if (drained_volume >= GlobalParams:: max_volume_to_be_drained)
-				  sc_stop();
-			      else 
-			      {
-				  drained_volume++;
-				  local_drained++;
-			      }
-			  }
-		      } 
-		      else if (i != DIRECTION_LOCAL) // not generated locally
-			  routed_flits++;
-		      /* End Power & Stats ------------------------------------------------- */
-			 //LOG<<"END_OK_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
-		  }
-		  else
-		  {
-		      LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
-		      //LOG << " **DEBUG APB: current_level_tx: " << current_level_tx[o] << " ack_tx: " << ack_tx[o].read() << endl;
-		      LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
+					if (o == DIRECTION_LOCAL) 
+					{
+						power.networkInterface();
+						LOG << "Consumed flit " << flit << endl;
+						stats.receivedFlit(sc_time_stamp().to_double() / GlobalParams::clock_period_ps, flit);
+						if (GlobalParams:: max_volume_to_be_drained) 
+						{
+							if (drained_volume >= GlobalParams:: max_volume_to_be_drained)
+							sc_stop();
+							else 
+							{
+								drained_volume++;
+								local_drained++;
+							}
+						}
+		      		} 	
+					else if (i != DIRECTION_LOCAL) // not generated locally
+						routed_flits++;
+					/* End Power & Stats ------------------------------------------------- */
+					//LOG<<"END_OK_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
+		  		}
+			else
+			{
+				LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
+				//LOG << " **DEBUG APB: current_level_tx: " << current_level_tx[o] << " ack_tx: " << ack_tx[o].read() << endl;
+				LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
 
-		  	//LOG<<"END_NO_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
-		      /*
-		      if (flit.flit_type == FLIT_TYPE_HEAD)
-			  reservation_table.release(i,flit.vc_id,o);
-			  */
-		  }
+				//LOG<<"END_NO_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
+				/*
+				if (flit.flit_type == FLIT_TYPE_HEAD)
+				reservation_table.release(i,flit.vc_id,o);
+				*/
+			}
 	      }
 	  } // if not reserved 
 	 // else LOG<<"we have no reservation for direction "<<i<< endl;

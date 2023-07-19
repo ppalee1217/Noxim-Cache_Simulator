@@ -11,6 +11,8 @@ class Selection_RANDOM : SelectionStrategy {
 	public:
         int apply(Router * router, const vector < int >&directions, const RouteData & route_data);
         void perCycleUpdate(Router * router);
+		int apply(DataRouter * router, const vector < int >&directions, const RouteData & route_data);
+        void perCycleUpdate(DataRouter * router);
 
 		static Selection_RANDOM * getInstance();
 

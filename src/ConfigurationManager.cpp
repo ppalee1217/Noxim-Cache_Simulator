@@ -359,7 +359,7 @@ void checkConfiguration()
     if (GlobalParams::packet_injection_rate <= 0.0 ||
 	GlobalParams::packet_injection_rate > 1.0) {
 	cerr <<
-	    "Error: packet injection rate mmust be in the interval ]0,1]"
+	    "Error: packet injection rate mmust be in the interval [0,1]"
 	    << endl;
 	exit(1);
     }

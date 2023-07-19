@@ -30,3 +30,24 @@ vector<int> Routing_DYAD::route(Router * router, const RouteData & routeData)
 
     return directions;
 }
+
+
+// Data NoC - AddDate: 2023/04/29
+vector<int> Routing_DYAD::route(DataRouter * router, const RouteData & routeData)
+{
+    vector <int> directions;
+
+    if (!odd_even)
+    {
+        odd_even = RoutingAlgorithms::get("ODD_EVEN");
+        
+        if (!odd_even)
+            assert(false);
+    }
+
+    directions = odd_even->route(router, routeData);
+
+    if (!router->inCongestion()) directions.resize(1);
+
+    return directions;
+}
