@@ -167,6 +167,5 @@ int GlobalTrafficTable::occurrencesAsSource(const int src_id)
 	for (unsigned int i = 0; i < traffic_table.size(); i++)
 		if (traffic_table[i].src == src_id)
 			count++;
-
 	return count;
 }

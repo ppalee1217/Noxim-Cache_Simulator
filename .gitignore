@@ -1,3 +1,6 @@
 # external repository
 bin/
 libs/
+bin/build
+*.exe
+*.out
