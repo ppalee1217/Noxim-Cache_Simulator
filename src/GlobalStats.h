@@ -16,6 +16,7 @@
 #include <iomanip>
 #include "NoC.h"
 #include "Tile.h"
+#include "TileCache.h"
 using namespace std;
 
 class GlobalStats {

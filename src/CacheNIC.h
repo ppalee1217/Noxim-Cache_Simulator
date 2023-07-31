@@ -8,8 +8,8 @@
  * This file contains the declaration of the processing element
  */
 
-#ifndef __NOXIMPROCESSINGELEMENT_H__
-#define __NOXIMPROCESSINGELEMENT_H__
+#ifndef __NOXIMCacheNIC_H__
+#define __NOXIMCacheNIC_H__
 
 #include <queue>
 #include <systemc.h>
@@ -22,7 +22,7 @@
 
 using namespace std;
 
-SC_MODULE(ProcessingElement)
+SC_MODULE(CacheNIC)
 {
 
     // I/O Ports
@@ -60,8 +60,15 @@ SC_MODULE(ProcessingElement)
     void datarxProcess();
     void datatxProcess();
     DataFlit nextDataFlit();
-
     // Registers
+    //! Modified
+    //* Note that packet will be push into vector only when TAIL flit is received
+    vector < Packet > received_packets;	// Received packets
+    vector < Packet > received_datapackets;  // Received datapackets
+    vector < Packet > packetBuffers; // Received packets without TAIL in buffer
+    void checkReceivedPackets(); // Iterate over the data packet to find the matching packet of the front of request packet
+    //* In order to sent request to IPC channel
+    //! 
     int local_id;		// Unique identification number
     bool current_level_rx;	// Current level for Alternating Bit Protocol (ABP)
     bool current_level_tx;	// Current level for Alternating Bit Protocol (ABP)
@@ -81,7 +88,6 @@ SC_MODULE(ProcessingElement)
     Packet trafficShuffle();	// Shuffle destination distribution
     Packet trafficButterfly();	// Butterfly destination distribution
     Packet trafficLocal();	// Random with locality
-    Packet trafficULocal();	// Random with locality
 
     GlobalTrafficTable *traffic_table;	// Reference to the Global traffic Table
     bool never_transmit;	// true if the PE does not transmit any packet 
@@ -94,14 +100,13 @@ SC_MODULE(ProcessingElement)
     int getBit(int x, int w);
     double log2ceil(double x);
 
-    int roulett();
     int findRandomDestination(int local_id,int hops);
     unsigned int getQueueSize() const;
 
     unsigned int getDataQueueSize() const;
 
     // Constructor
-    SC_CTOR(ProcessingElement) {
+    SC_CTOR(CacheNIC) {
         SC_METHOD(rxProcess);
         sensitive << reset;
         sensitive << clock.pos();
@@ -115,6 +120,10 @@ SC_MODULE(ProcessingElement)
         sensitive << clock.pos();
 
         SC_METHOD(datatxProcess);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_METHOD(checkReceivedPackets);
         sensitive << reset;
         sensitive << clock.pos();
     }

@@ -48,7 +48,7 @@ void DataRouter::rxProcess()
                 if (!buffer[i][vc].IsFull()) 
                 {
                     buffer[i][vc].Push(received_flit);
-                    LOG << " Flit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl;
+                    LOG << " DataFlit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
 
                     power.bufferRouterPush();
                     current_level_rx[i] = 1 - current_level_rx[i];
@@ -58,7 +58,7 @@ void DataRouter::rxProcess()
                 }
                 else
                 {
-                    LOG << " Flit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl;
+                    LOG << " DataFlit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl << endl;
                     assert(i== DIRECTION_LOCAL);
                 }
             }

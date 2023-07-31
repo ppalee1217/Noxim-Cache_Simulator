@@ -39,7 +39,8 @@ enum FlitType
 struct Payload
 {
     sc_uint<32> data; // Bus for the data to be exchanged
-
+    sc_uint<1> read; // Read or Write packet (Only work when transmitting data to/from memory)
+    sc_int<32> request_size; // Request size (When read = true, request size should be specified)
     inline bool operator==(const Payload &payload) const
     {
         return (payload.data == data);
@@ -52,6 +53,10 @@ struct Packet
     int src_id;
     int dst_id;
     int vc_id;
+    //! Modified
+    int packet_id;      // The packet ID
+    vector <Payload> payload; // To store payload(data) for each flit
+    //!
     double timestamp; // SC timestamp at packet generation
     int size;
     int flit_left; // Number of remaining flits inside the packet
@@ -141,6 +146,9 @@ struct Flit
     int src_id;
     int dst_id;
     int vc_id;          // Virtual Channel
+    //! Modified
+    int packet_id;      // The packet ID
+    //!
     FlitType flit_type; // The flit type (FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL)
     int sequence_no;    // The sequence number of the flit inside the packet
     int sequence_length;
@@ -153,7 +161,18 @@ struct Flit
 
     inline bool operator==(const Flit &flit) const
     {
-        return (flit.src_id == src_id && flit.dst_id == dst_id && flit.flit_type == flit_type && flit.vc_id == vc_id && flit.sequence_no == sequence_no && flit.sequence_length == sequence_length && flit.payload == payload && flit.timestamp == timestamp && flit.hop_no == hop_no && flit.use_low_voltage_path == use_low_voltage_path);
+        return (
+            flit.src_id == src_id &&
+            flit.dst_id == dst_id &&
+            flit.flit_type == flit_type &&
+            flit.vc_id == vc_id &&
+            flit.sequence_no == sequence_no &&
+            flit.sequence_length == sequence_length &&
+            flit.payload == payload &&
+            flit.timestamp == timestamp &&
+            flit.hop_no == hop_no &&
+            flit.use_low_voltage_path == use_low_voltage_path
+        );
     }
 };
 
@@ -163,6 +182,9 @@ struct DataFlit
     int src_id;
     int dst_id;
     int vc_id;
+    //! Modified
+    int packet_id;      // The packet ID
+    //!
     FlitType flit_type;
     int sequence_no;
     int sequence_length;

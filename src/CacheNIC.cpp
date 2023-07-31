@@ -8,15 +8,15 @@
  * This file contains the implementation of the processing element
  */
 
-#include "ProcessingElement.h"
+#include "CacheNIC.h"
 
-int ProcessingElement::randInt(int min, int max)
+int CacheNIC::randInt(int min, int max)
 {
     return min +
            (int)((double)(max - min + 1) * rand() / (RAND_MAX + 1.0));
 }
 
-void ProcessingElement::rxProcess()
+void CacheNIC::rxProcess()
 {
     if (reset.read())
     {
@@ -29,17 +29,45 @@ void ProcessingElement::rxProcess()
         {
             Flit flit_tmp = flit_rx.read();
             current_level_rx = 1 - current_level_rx; // Negate the old value for Alternating Bit Protocol (ABP)
+            if (flit_tmp.flit_type == FLIT_TYPE_HEAD){
+                cout << "(Request)Cache NIC " << local_id << " received a HEAD flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
+                cout << "Store request packet to packet buffer" << endl;
+                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                Packet packet_tmp;
+                packet_tmp.src_id = flit_tmp.src_id;
+                packet_tmp.dst_id = flit_tmp.dst_id;
+                packet_tmp.vc_id = flit_tmp.vc_id;
+                packet_tmp.packet_id = flit_tmp.packet_id;
+                packet_tmp.timestamp = flit_tmp.timestamp;
+                packetBuffers.push_back(packet_tmp);
+            }
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
-                cout << "(Request)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                cout << "(Request)Cache NIC " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
                 cout << "Received request: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
                 cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
                 cout << "Received request type(read = 1): " << flit_tmp.payload.read << endl;
                 cout << "Received request size: " << flit_tmp.payload.request_size << endl;
                 cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                for(int i=0;i<packetBuffers.size();i++){
+                    if(packetBuffers[i].packet_id == flit_tmp.packet_id){
+                        packetBuffers[i].payload.push_back(flit_tmp.payload);
+                        break;
+                    }
+                }
             }
             if (flit_tmp.flit_type == FLIT_TYPE_TAIL){
-                cout << "(Request)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                cout << "(Request)Cache NIC " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
+                cout << "Store request packet from packet buffer to received packets" << endl;
                 cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                for(int i=0;i<packetBuffers.size();i++){
+                    if(packetBuffers[i].packet_id == flit_tmp.packet_id){
+                        received_packets.push_back(packetBuffers[i]);
+                        packetBuffers.erase(packetBuffers.begin()+i);
+                    }
+                }
             }
             cout << endl;
         }
@@ -47,7 +75,7 @@ void ProcessingElement::rxProcess()
     }
 }
 
-void ProcessingElement::txProcess()
+void CacheNIC::txProcess()
 {
     if (reset.read())
     {
@@ -80,7 +108,7 @@ void ProcessingElement::txProcess()
     }
 }
 
-Flit ProcessingElement::nextFlit()
+Flit CacheNIC::nextFlit()
 {
     Flit flit;
     Packet packet = packet_queue.front();
@@ -109,15 +137,13 @@ Flit ProcessingElement::nextFlit()
         flit.payload = packet.payload[flit.sequence_no-1];
     }
     cout << "==========" << endl;
-    cout << "PE " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
+    cout << "CacheNIC " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
     cout << "Flit type: " << flit.flit_type << endl;
     cout << "Sequence number: " << flit.sequence_no << endl;
     cout << "Sent request: 0x" << std::hex << flit.payload.data << std::dec << endl;
     cout << "==========" << endl;
     //! Modified
-
     flit.hub_relay_node = NOT_VALID;
-
 
     packet_queue.front().flit_left--;
     if (packet_queue.front().flit_left == 0)
@@ -126,7 +152,7 @@ Flit ProcessingElement::nextFlit()
     return flit;
 }
 
-void ProcessingElement::datarxProcess()
+void CacheNIC::datarxProcess()
 {
     if (reset.read())
     {
@@ -139,23 +165,75 @@ void ProcessingElement::datarxProcess()
         {
             DataFlit flit_tmp = dataflit_rx.read();
             datacurrent_level_rx = 1 - datacurrent_level_rx;
+            if (flit_tmp.flit_type == FLIT_TYPE_HEAD){
+                cout << "(Data)Cache NIC " << local_id << " received a HEAD flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
+                cout << "Store data packet to packet buffer" << endl;
+                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                Packet packet_tmp;
+                packet_tmp.src_id = flit_tmp.src_id;
+                packet_tmp.dst_id = flit_tmp.dst_id;
+                packet_tmp.vc_id = flit_tmp.vc_id;
+                packet_tmp.packet_id = flit_tmp.packet_id;
+                packet_tmp.timestamp = flit_tmp.timestamp;
+                packetBuffers.push_back(packet_tmp);
+            }
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
-                cout << "(Data)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                cout << "(Data)Cache NIC " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
                 cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
                 cout << "Received data: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
                 cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                for(int i=0;i<packetBuffers.size();i++){
+                    if(packetBuffers[i].packet_id == flit_tmp.packet_id){
+                        packetBuffers[i].payload.push_back(flit_tmp.payload);
+                        break;
+                    }
+                }
             }
             if (flit_tmp.flit_type == FLIT_TYPE_TAIL){
-                cout << "(Data)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                cout << "(Data)Cache NIC " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                cout << "Packet ID: " << flit_tmp.packet_id << endl;
+                cout << "Store request packet from packet buffer to received packets" << endl;
                 cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                for(int i=0;i<packetBuffers.size();i++){
+                    if(packetBuffers[i].packet_id == flit_tmp.packet_id){
+                        received_datapackets.push_back(packetBuffers[i]);
+                        packetBuffers.erase(packetBuffers.begin()+i);
+                    }
+                }
             }
-            cout << endl;
             dataack_rx.write(datacurrent_level_rx);
+            cout << endl;
         }
     }
 }
 
-void ProcessingElement::datatxProcess()
+void CacheNIC::checkReceivedPackets()
+{
+    if(received_packets.size()!=0){
+        for(int i=0;i<received_datapackets.size();i++){
+            if(received_packets[0].src_id == received_datapackets[i].src_id){
+                cout << "CacheNIC " << local_id << " received a Data & Req packet from PE " << received_datapackets[i].src_id << endl;
+                cout << "Request type is " << received_packets[0].payload[0].read << endl;
+                cout << "Request size is " << received_packets[0].payload[0].request_size << endl;
+                cout << "Request address is 0x" << received_packets[0].payload[0].data << received_packets[0].payload[1].data << endl;
+                if(received_packets[0].payload[0].read != 1){
+                    for(int j=0;j<received_datapackets[i].payload.size();j++){
+                        cout << "Data flit " << j << " is 0x" << std::hex << received_datapackets[i].payload[j].data << std::dec << endl;
+                    }
+                }
+                cout << "received packets size: " << received_packets.size() << endl;
+                cout << "received datapackets size: " << received_datapackets.size() << endl;
+                cout << "packetBuffers size: " << packetBuffers.size() << endl;
+                cout << endl;
+                break;
+            }
+        }
+    }
+}
+
+void CacheNIC::datatxProcess()
 {
     if (reset.read())
     {
@@ -188,7 +266,7 @@ void ProcessingElement::datatxProcess()
     }
 }
 
-DataFlit ProcessingElement::nextDataFlit()
+DataFlit CacheNIC::nextDataFlit()
 {
     DataFlit flit;
     Packet packet = datapacket_queue.front();
@@ -216,7 +294,7 @@ DataFlit ProcessingElement::nextDataFlit()
         flit.payload = packet.payload[flit.sequence_no-1];
     }
     cout << "==========" << endl;
-    cout << "PE " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
+    cout << "CacheNIC " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
     cout << "Flit type: " << flit.flit_type << endl;
     cout << "Sequence number: " << flit.sequence_no << endl;
     cout << "Sent data: 0x" << std::hex << flit.payload.data << std::dec << endl;
@@ -231,7 +309,7 @@ DataFlit ProcessingElement::nextDataFlit()
     return flit;
 }
 
-bool ProcessingElement::canShot(Packet &packet, int isReqt)
+bool CacheNIC::canShot(Packet &packet, int isReqt)
 {
     if (never_transmit)
         return false;
@@ -251,7 +329,8 @@ bool ProcessingElement::canShot(Packet &packet, int isReqt)
             threshold = GlobalParams::packet_injection_rate;
         else
             threshold = GlobalParams::probability_of_retransmission;
-        shot = (((double)rand()) / RAND_MAX < threshold) && (local_id == 0);
+        // shot = (local_id == 19);
+        // shot = (((double)rand()) / RAND_MAX < threshold) && (local_id == 19);
         if (shot)
         {
             if (GlobalParams::traffic_distribution == TRAFFIC_RANDOM)
@@ -268,8 +347,6 @@ bool ProcessingElement::canShot(Packet &packet, int isReqt)
                 packet = trafficButterfly();
             else if (GlobalParams::traffic_distribution == TRAFFIC_LOCAL)
                 packet = trafficLocal();
-            else if (GlobalParams::traffic_distribution == TRAFFIC_ULOCAL)
-                packet = trafficULocal();
             else if (GlobalParams::traffic_distribution == TRAFFIC_TEST)
                 packet = trafficTest(isReqt);
             else
@@ -302,7 +379,7 @@ bool ProcessingElement::canShot(Packet &packet, int isReqt)
     return shot;
 }
 
-Packet ProcessingElement::trafficLocal()
+Packet CacheNIC::trafficLocal()
 {
     Packet p;
     p.src_id = local_id;
@@ -333,7 +410,7 @@ Packet ProcessingElement::trafficLocal()
     return p;
 }
 
-int ProcessingElement::findRandomDestination(int id, int hops)
+int CacheNIC::findRandomDestination(int id, int hops)
 {
     assert(GlobalParams::topology == TOPOLOGY_MESH);
 
@@ -369,40 +446,7 @@ int ProcessingElement::findRandomDestination(int id, int hops)
     return coord2Id(current);
 }
 
-int roulette()
-{
-    int slices = GlobalParams::mesh_dim_x + GlobalParams::mesh_dim_y - 2;
-
-    double r = rand() / (double)RAND_MAX;
-
-    for (int i = 1; i <= slices; i++)
-    {
-        if (r < (1 - 1 / double(2 << i)))
-        {
-            return i;
-        }
-    }
-    assert(false);
-    return 1;
-}
-
-Packet ProcessingElement::trafficULocal()
-{
-    Packet p;
-    p.src_id = local_id;
-
-    int target_hops = roulette();
-
-    p.dst_id = findRandomDestination(local_id, target_hops);
-
-    p.timestamp = sc_time_stamp().to_double() / GlobalParams::clock_period_ps;
-    p.size = p.flit_left = getRandomSize();
-    p.vc_id = randInt(0, GlobalParams::n_virtual_channels - 1);
-
-    return p;
-}
-
-Packet ProcessingElement::trafficRandom()
+Packet CacheNIC::trafficRandom()
 {
     Packet p;
     p.src_id = local_id;
@@ -452,7 +496,7 @@ Packet ProcessingElement::trafficRandom()
     return p;
 }
 // TODO: for testing only
-Packet ProcessingElement::trafficTest(int isReqt)
+Packet CacheNIC::trafficTest(int isReqt)
 {
     Packet p;
     p.src_id = local_id;
@@ -461,7 +505,7 @@ Packet ProcessingElement::trafficTest(int isReqt)
     bool read;
     (isReqt==1) ? cout << "<<Request channel>>" << endl : cout << "<<Data channel>>" << endl;
     std::string data = "";
-    cout << "Current PE id: " << local_id << endl;
+    cout << "Current CacheNIC id: " << local_id << endl;
     cout << "Enter destination PE id: ";
     cin >> dst;
     cout << "Is request Read(1) or Write(0): ";
@@ -541,7 +585,7 @@ Packet ProcessingElement::trafficTest(int isReqt)
     return p;
 }
 
-Packet ProcessingElement::trafficTranspose1()
+Packet CacheNIC::trafficTranspose1()
 {
     assert(GlobalParams::topology == TOPOLOGY_MESH);
     Packet p;
@@ -563,7 +607,7 @@ Packet ProcessingElement::trafficTranspose1()
     return p;
 }
 
-Packet ProcessingElement::trafficTranspose2()
+Packet CacheNIC::trafficTranspose2()
 {
     assert(GlobalParams::topology == TOPOLOGY_MESH);
     Packet p;
@@ -585,7 +629,7 @@ Packet ProcessingElement::trafficTranspose2()
     return p;
 }
 
-void ProcessingElement::setBit(int &x, int w, int v)
+void CacheNIC::setBit(int &x, int w, int v)
 {
     int mask = 1 << w;
 
@@ -597,17 +641,17 @@ void ProcessingElement::setBit(int &x, int w, int v)
         assert(false);
 }
 
-int ProcessingElement::getBit(int x, int w)
+int CacheNIC::getBit(int x, int w)
 {
     return (x >> w) & 1;
 }
 
-inline double ProcessingElement::log2ceil(double x)
+inline double CacheNIC::log2ceil(double x)
 {
     return ceil(log(x) / log(2.0));
 }
 
-Packet ProcessingElement::trafficBitReversal()
+Packet CacheNIC::trafficBitReversal()
 {
 
     int nbits =
@@ -629,7 +673,7 @@ Packet ProcessingElement::trafficBitReversal()
     return p;
 }
 
-Packet ProcessingElement::trafficShuffle()
+Packet CacheNIC::trafficShuffle()
 {
 
     int nbits =
@@ -652,7 +696,7 @@ Packet ProcessingElement::trafficShuffle()
     return p;
 }
 
-Packet ProcessingElement::trafficButterfly()
+Packet CacheNIC::trafficButterfly()
 {
 
     int nbits = (int)log2ceil((double)(GlobalParams::mesh_dim_x *
@@ -674,7 +718,7 @@ Packet ProcessingElement::trafficButterfly()
     return p;
 }
 
-void ProcessingElement::fixRanges(const Coord src,
+void CacheNIC::fixRanges(const Coord src,
                                   Coord &dst)
 {
     // Fix ranges
@@ -688,19 +732,19 @@ void ProcessingElement::fixRanges(const Coord src,
         dst.y = GlobalParams::mesh_dim_y - 1;
 }
 
-int ProcessingElement::getRandomSize()
+int CacheNIC::getRandomSize()
 {
     return randInt(GlobalParams::min_packet_size,
                    GlobalParams::max_packet_size);
 }
 
-unsigned int ProcessingElement::getQueueSize() const
+unsigned int CacheNIC::getQueueSize() const
 {
     return packet_queue.size();
 }
 
 // Data NoC - AddDate: 2023/04/30
-unsigned int ProcessingElement::getDataQueueSize() const
+unsigned int CacheNIC::getDataQueueSize() const
 {
     return datapacket_queue.size();
 }

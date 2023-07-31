@@ -74,6 +74,7 @@ using namespace std;
 #define TRAFFIC_BUTTERFLY      "TRAFFIC_BUTTERFLY"
 #define TRAFFIC_LOCAL	       "TRAFFIC_LOCAL"
 #define TRAFFIC_ULOCAL	       "TRAFFIC_ULOCAL"
+#define TRAFFIC_TEST	       "TRAFFIC_TEST"
 
 // Verbosity levels
 #define VERBOSE_OFF            "VERBOSE_OFF"
@@ -89,6 +90,12 @@ using namespace std;
 #define TOKEN_HOLD             "TOKEN_HOLD"
 #define TOKEN_MAX_HOLD         "TOKEN_MAX_HOLD"
 #define TOKEN_PACKET           "TOKEN_PACKET"
+
+
+//! Modified
+// Packet size in NOC
+#define DATA_PACKET_SIZE 256
+#define REQ_PACKET_SIZE 64
 
 typedef struct {
     pair<double, double> ber;

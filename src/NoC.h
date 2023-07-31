@@ -13,6 +13,7 @@
 
 #include <systemc.h>
 #include "Tile.h"
+#include "TileCache.h"
 #include "GlobalRoutingTable.h"
 #include "GlobalTrafficTable.h"
 #include "Hub.h"
@@ -79,12 +80,13 @@ public:
     sc_signal_NSWEH<DataFlit> **dataflit;
     sc_signal_NSWE<int> **datafree_slots;
     sc_signal_NSWE<NoP_data> **datanop_data;
-    //!
     //! I/O Ports for Cache
 
     // Matrix of tiles
     Tile ***t;
     Tile **core;
+    //! Modified
+    TileCache ***t_cache;
 
     map<int, Hub *> hub;
     map<int, Channel *> channel;
