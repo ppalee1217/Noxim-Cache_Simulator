@@ -2,9 +2,11 @@
 
 ./build/Buffer.o: ../src/Buffer.h ../src/DataStructs.h ../src/GlobalParams.h
 ./build/Buffer.o: ../src/Utils.h
+./build/DataBuffer.o: ../src/DataBuffer.h ../src/DataStructs.h ../src/GlobalParams.h
+./build/DataBuffer.o: ../src/Utils.h
 ./build/Channel.o: ../src/Channel.h ../src/Utils.h ../src/DataStructs.h
 ./build/Channel.o: ../src/GlobalParams.h ../src/Power.h ../src/Hub.h
-./build/Channel.o: ../src/Buffer.h ../src/ReservationTable.h
+./build/Channel.o: ../src/Buffer.h ../src/DataBuffer.h ../src/ReservationTable.h
 ./build/Channel.o: ../src/Initiator.h ../src/Target.h ../src/TokenRing.h
 ./build/ConfigurationManager.o: ../src/ConfigurationManager.h
 ./build/ConfigurationManager.o: ../src/GlobalParams.h
@@ -13,7 +15,7 @@
 ./build/GlobalRoutingTable.o: ../src/GlobalParams.h
 ./build/GlobalStats.o: ../src/GlobalStats.h ../src/NoC.h ../src/Tile.h ../src/TileCache.h
 ./build/GlobalStats.o: ../src/Router.h ../src/DataRouter.h ../src/DataStructs.h
-./build/GlobalStats.o: ../src/GlobalParams.h ../src/Buffer.h ../src/Stats.h
+./build/GlobalStats.o: ../src/GlobalParams.h ../src/Buffer.h ../src/DataBuffer.h ../src/Stats.h
 ./build/GlobalStats.o: ../src/Power.h ../src/GlobalRoutingTable.h
 ./build/GlobalStats.o: ../src/LocalRoutingTable.h ../src/ReservationTable.h
 ./build/GlobalStats.o: ../src/Utils.h
@@ -27,7 +29,7 @@
 ./build/GlobalStats.o: ../src/selectionStrategies/SelectionStrategies.h
 ./build/GlobalStats.o: ../src/Router.h ../src/DataRouter.h
 ./build/GlobalStats.o: ../src/selectionStrategies/Selection_BUFFER_LEVEL.h
-./build/GlobalStats.o: ../src/ProcessingElement.h ../src/GlobalTrafficTable.h
+./build/GlobalStats.o: ../src/ProcessingElement.h ../src/CacheNIC.h ../src/GlobalTrafficTable.h
 ./build/GlobalStats.o: ../src/Hub.h ../src/Initiator.h ../src/Target.h
 ./build/GlobalStats.o: ../src/TokenRing.h ../src/Channel.h
 ./build/GlobalTrafficTable.o: ../src/GlobalTrafficTable.h ../src/DataStructs.h
@@ -46,7 +48,7 @@
 ./build/MM.o: ../src/MM.h
 ./build/Main.o: ../src/ConfigurationManager.h ../src/GlobalParams.h
 ./build/Main.o: ../src/NoC.h ../src/Tile.h ../src/TileCache.h ../src/Router.h ../src/DataRouter.h
-./build/Main.o: ../src/DataStructs.h ../src/Buffer.h ../src/Stats.h
+./build/Main.o: ../src/DataStructs.h ../src/Buffer.h ../src/DataBuffer.h ../src/Stats.h
 ./build/Main.o: ../src/Power.h ../src/GlobalRoutingTable.h
 ./build/Main.o: ../src/LocalRoutingTable.h ../src/ReservationTable.h
 ./build/Main.o: ../src/Utils.h ../src/routingAlgorithms/RoutingAlgorithm.h
@@ -59,11 +61,11 @@
 ./build/Main.o: ../src/selectionStrategies/SelectionStrategies.h
 ./build/Main.o: ../src/Router.h ../src/DataRouter.h
 ./build/Main.o: ../src/selectionStrategies/Selection_BUFFER_LEVEL.h
-./build/Main.o: ../src/ProcessingElement.h ../src/GlobalTrafficTable.h
+./build/Main.o: ../src/ProcessingElement.h ../src/CacheNIC.h ../src/GlobalTrafficTable.h
 ./build/Main.o: ../src/Hub.h ../src/Initiator.h ../src/Target.h
 ./build/Main.o: ../src/TokenRing.h ../src/Channel.h ../src/GlobalStats.h
 ./build/NoC.o: ../src/NoC.h ../src/Tile.h ../src/TileCache.h ../src/Router.h ../src/DataStructs.h
-./build/NoC.o: ../src/GlobalParams.h ../src/Buffer.h ../src/Stats.h
+./build/NoC.o: ../src/GlobalParams.h ../src/Buffer.h ../src/DataBuffer.h ../src/Stats.h
 ./build/NoC.o: ../src/Power.h ../src/GlobalRoutingTable.h
 ./build/NoC.o: ../src/LocalRoutingTable.h ../src/ReservationTable.h
 ./build/NoC.o: ../src/Utils.h ../src/routingAlgorithms/RoutingAlgorithm.h
@@ -76,15 +78,15 @@
 ./build/NoC.o: ../src/selectionStrategies/SelectionStrategies.h
 ./build/NoC.o: ../src/Router.h ../src/DataRouter.h
 ./build/NoC.o: ../src/selectionStrategies/Selection_BUFFER_LEVEL.h
-./build/NoC.o: ../src/ProcessingElement.h ../src/GlobalTrafficTable.h
+./build/NoC.o: ../src/ProcessingElement.h ../src/CacheNIC.h ../src/GlobalTrafficTable.h
 ./build/NoC.o: ../src/Hub.h ../src/Initiator.h ../src/Target.h
 ./build/NoC.o: ../src/TokenRing.h ../src/Channel.h
 ./build/Power.o: ../src/Power.h ../src/DataStructs.h ../src/GlobalParams.h
 ./build/Power.o: ../src/Utils.h
-./build/ProcessingElement.o: ../src/ProcessingElement.h ../src/DataStructs.h
+./build/ProcessingElement.o: ../src/ProcessingElement.h ../src/CacheNIC.h ../src/DataStructs.h
 ./build/ProcessingElement.o: ../src/GlobalParams.h ../src/GlobalTrafficTable.h
 ./build/ProcessingElement.o: ../src/Utils.h
-./build/CacheNIC.o: ../src/ProcessingElement.h ../src/DataStructs.h
+./build/CacheNIC.o: ../src/CacheNIC.h ../src/DataStructs.h
 ./build/CacheNIC.o: ../src/GlobalParams.h ../src/GlobalTrafficTable.h
 ./build/CacheNIC.o: ../src/Utils.h
 ./build/ReservationTable.o: ../src/ReservationTable.h ../src/DataStructs.h
@@ -104,7 +106,7 @@
 ./build/Router.o: ../src/Router.h
 ./build/Router.o: ../src/selectionStrategies/Selection_BUFFER_LEVEL.h
 ./build/DataRouter.o: ../src/DataRouter.h ../src/DataStructs.h ../src/GlobalParams.h
-./build/DataRouter.o: ../src/Buffer.h ../src/Stats.h ../src/Power.h
+./build/DataRouter.o: ../src/DataBuffer.h ../src/Stats.h ../src/Power.h
 ./build/DataRouter.o: ../src/GlobalRoutingTable.h ../src/LocalRoutingTable.h
 ./build/DataRouter.o: ../src/ReservationTable.h ../src/Utils.h
 ./build/DataRouter.o: ../src/routingAlgorithms/RoutingAlgorithm.h
@@ -120,7 +122,7 @@
 ./build/Stats.o: ../src/Stats.h ../src/DataStructs.h ../src/GlobalParams.h
 ./build/Stats.o: ../src/Power.h
 ./build/Target.o: ../src/Hub.h ../src/DataStructs.h ../src/GlobalParams.h
-./build/Target.o: ../src/Buffer.h ../src/ReservationTable.h ../src/Utils.h
+./build/Target.o: ../src/Buffer.h ../src/DataBuffer.h ../src/ReservationTable.h ../src/Utils.h
 ./build/Target.o: ../src/Initiator.h ../src/Target.h ../src/TokenRing.h
 ./build/Target.o: ../src/Power.h
 ./build/TokenRing.o: ../src/TokenRing.h ../src/Utils.h ../src/DataStructs.h

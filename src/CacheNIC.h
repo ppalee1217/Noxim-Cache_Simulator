@@ -11,14 +11,31 @@
 #ifndef __NOXIMCacheNIC_H__
 #define __NOXIMCacheNIC_H__
 
+#include <fcntl.h>  // for O_* constants
+#include <string.h>
+#include <sys/mman.h>  // for POSIX shared memory API
+#include <sys/stat.h>  // for mode constants
+#include <unistd.h>    // ftruncate
 #include <queue>
 #include <systemc.h>
+#include <iostream>
 #include <string.h>
+#include <cstring>
 #include <string>
+#include <stdint.h>
 
 #include "DataStructs.h"
 #include "GlobalTrafficTable.h"
 #include "Utils.h"
+
+//! Calculate the size of the packet in runtime
+#define SHM_SIZE 512
+// src_id(32) | dst_id(32) | packet_id(32) | req(32*2) | data(32*8) | read(32) | request_size(32) | READY(1) | VALID(1) | ACK(1)
+//* Total 482 bits
+#define CHECKREADY(p) (*(p + 15) >> 31)
+#define CHECKVALID(p) ((*(p + 15) >> 30) & 0b1)
+#define CHECKACK(p) ((*(p + 15) >> 29) & 0b1)
+#define GETTEST(p,pos) (*(p + pos))
 
 using namespace std;
 
@@ -66,8 +83,15 @@ SC_MODULE(CacheNIC)
     vector < Packet > received_packets;	// Received packets
     vector < Packet > received_datapackets;  // Received datapackets
     vector < Packet > packetBuffers; // Received packets without TAIL in buffer
-    void checkReceivedPackets(); // Iterate over the data packet to find the matching packet of the front of request packet
+    void checkNoCPackets(); // Iterate over the data packet to find the matching packet of the front of request packet
+    // void checkAck();
+    void checkCachePackets();
+    void transaction(Packet & req_packet, Packet & data_packet); // Send packets to the IPC channel
     //* In order to sent request to IPC channel
+    void setIPC_Data(uint32_t *ptr, uint32_t data, int const_pos, int varied_pos);
+    void setIPC_Valid(uint32_t *ptr);
+    void resetIPC_Valid(uint32_t *ptr);
+    void resetIPC_Ack(uint32_t *ptr);
     //! 
     int local_id;		// Unique identification number
     bool current_level_rx;	// Current level for Alternating Bit Protocol (ABP)
@@ -107,6 +131,10 @@ SC_MODULE(CacheNIC)
 
     // Constructor
     SC_CTOR(CacheNIC) {
+        // SC_METHOD(checkAck);
+        // sensitive << reset;
+        // sensitive << clock.pos();
+
         SC_METHOD(rxProcess);
         sensitive << reset;
         sensitive << clock.pos();
@@ -123,7 +151,11 @@ SC_MODULE(CacheNIC)
         sensitive << reset;
         sensitive << clock.pos();
 
-        SC_METHOD(checkReceivedPackets);
+        SC_METHOD(checkCachePackets);
+        sensitive << reset;
+        sensitive << clock.pos();
+        
+        SC_METHOD(checkNoCPackets);
         sensitive << reset;
         sensitive << clock.pos();
     }

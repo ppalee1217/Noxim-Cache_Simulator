@@ -30,6 +30,7 @@ CXXFLAGS := $(OPT) $(OTHER) $(DEBUG)
 
 INCDIR := -I$(SRCDIR) -isystem $(SYSTEMC_ROOT)/include -I$(YAML)/include
 LIBDIR := -L$(SRCDIR) -L$(SYSTEMC_ROOT)/lib-linux64 -L$(YAML)/lib
+LDLIBS := -lrt
 
 LIBS := -lsystemc -lm -lyaml-cpp
 
@@ -39,7 +40,7 @@ VPATH := $(SRCDIR):$(subst $(SPACE),:,$(SUBDIRS))
 ##### RULES #####
 
 $(MODULE): $(OBJS)
-	$(CXX) $(LIBDIR) $^ $(LIBS) -o $@ 2>&1 | c++filt
+	$(CXX) $(LIBDIR) $^ $(LIBS) -o $@ $(LDLIBS) 2>&1 | c++filt
 
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)

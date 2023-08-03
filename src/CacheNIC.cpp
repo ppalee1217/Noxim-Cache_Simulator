@@ -209,28 +209,135 @@ void CacheNIC::datarxProcess()
     }
 }
 
-void CacheNIC::checkReceivedPackets()
+void CacheNIC::checkCachePackets()
 {
-    if(received_packets.size()!=0){
-        for(int i=0;i<received_datapackets.size();i++){
-            if(received_packets[0].src_id == received_datapackets[i].src_id){
-                cout << "CacheNIC " << local_id << " received a Data & Req packet from PE " << received_datapackets[i].src_id << endl;
-                cout << "Request type is " << received_packets[0].payload[0].read << endl;
-                cout << "Request size is " << received_packets[0].payload[0].request_size << endl;
-                cout << "Request address is 0x" << received_packets[0].payload[0].data << received_packets[0].payload[1].data << endl;
-                if(received_packets[0].payload[0].read != 1){
-                    for(int j=0;j<received_datapackets[i].payload.size();j++){
-                        cout << "Data flit " << j << " is 0x" << std::hex << received_datapackets[i].payload[j].data << std::dec << endl;
+    if (reset.read())
+    {
+        
+    }
+    else
+    {
+
+    }
+    return;
+}
+
+void CacheNIC::checkNoCPackets()
+{
+    if (reset.read())
+    {
+        received_packets.clear();
+        received_datapackets.clear();
+        packetBuffers.clear();
+    }
+    else
+    {
+        if(received_packets.size()!=0){
+            for(int i=0;i<received_datapackets.size();i++){
+                //* Here is a assumption that the data packet of same request will be received before other data packet from the same PE
+                if(received_packets[0].src_id == received_datapackets[i].src_id){
+                    cout << "CacheNIC " << local_id << " received a Data & Req packet from PE " << received_datapackets[i].src_id << endl;
+                    cout << "Request type is (Read is 1) " << received_packets[0].payload[0].read << endl;
+                    cout << "Request size is " << received_packets[0].payload[0].request_size << endl;
+                    cout << "Request address is 0x" << std::hex << received_packets[0].payload[0].data << received_packets[0].payload[1].data << std::dec << endl;
+                    if(received_packets[0].payload[0].read != 1){
+                        for(int j=0;j<received_datapackets[i].payload.size();j++){
+                            cout << "Data flit " << j << " is 0x" << std::hex << received_datapackets[i].payload[j].data << std::dec << endl;
+                        }
                     }
+                    cout << endl;
+                    transaction(received_packets[0], received_datapackets[i]);
+                    received_packets.erase(received_packets.begin());
+                    received_datapackets.erase(received_datapackets.begin()+i);
+                    //* For debug test (if error occurs when packet number is huge)
+                    // cout << "received packets size: " << received_packets.size() << endl;
+                    // cout << "received datapackets size: " << received_datapackets.size() << endl;
+                    // cout << "packetBuffers size: " << packetBuffers.size() << endl;
+                    cout << endl;
+                    break;
                 }
-                cout << "received packets size: " << received_packets.size() << endl;
-                cout << "received datapackets size: " << received_datapackets.size() << endl;
-                cout << "packetBuffers size: " << packetBuffers.size() << endl;
-                cout << endl;
-                break;
             }
         }
     }
+}
+
+void CacheNIC::transaction(Packet & req_packet, Packet & data_packet){
+    cout << "<<Start transaction with IPC>>" << endl;
+    std::string shm_name_tmp = "cache_nic" + std::to_string(local_id);
+    // src_id(32) | dst_id(32) | packet_id(32) | req(32*2) | data(32*8) | read(32) | request_size(32) | READY(1) | VALID(1)
+    char *shm_name = new char[shm_name_tmp.size()+1];
+    std::strcpy (shm_name, shm_name_tmp.c_str());
+    cout << "SHM_NAME: " << shm_name << endl;
+    int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
+    ftruncate(fd, SHM_SIZE);
+    uint32_t* ptr = (uint32_t*)mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    uint32_t ready, valid, ack, data_test;
+    cout << "Waiting for IPC channel to set ready signal." << endl;
+    while(CHECKREADY(ptr) != 1){
+        // getchar();
+        // ready = CHECKREADY(ptr);
+        // data_test = GETTEST(ptr, 15);
+        // cout << "Checking again..." << endl;
+        // cout << "ready = " << ready << endl;
+        // cout << "data_test = 0x" << std::hex << data_test << std::dec << endl;
+    }
+    cout << "IPC channel is ready to read." << endl;
+    //* Setting the valid bit and size
+    // set src_id
+    setIPC_Data(ptr, req_packet.src_id, 0, 0);
+    // set dst_id
+    setIPC_Data(ptr, req_packet.dst_id, 1, 0);
+    // set packet_id
+    setIPC_Data(ptr, req_packet.packet_id, 2, 0);
+    // set request addr
+    for(int i=0;i<(REQ_PACKET_SIZE/32);i++){
+        setIPC_Data(ptr, req_packet.payload[i].data, 3, i);
+    }
+    // set request data (write only)
+    if(req_packet.payload[0].read != 1){
+        for(int i=0;i<(DATA_PACKET_SIZE/32);i++){
+            setIPC_Data(ptr, data_packet.payload[i].data, 5, i);
+        }
+    }
+    // set request size (read only)
+    else{
+        setIPC_Data(ptr, req_packet.payload[0].request_size, 14, 0);
+    }
+    // set read
+    setIPC_Data(ptr, req_packet.payload[0].read, 13, 0);
+    setIPC_Valid(ptr);
+    cout << "Wait for IPC channel to set ack signal." << endl;
+    while(CHECKACK(ptr) != 1){
+        ack = CHECKACK(ptr);
+        cout << "ack = " << ack << endl;
+    }
+    resetIPC_Ack(ptr);
+    cout << "IPC channel ack signal is sent back." << endl;
+    cout << "<Transaction completed!>" << endl;
+    resetIPC_Valid(ptr);
+    // munmap(ptr, SHM_SIZE);
+    // shm_unlink(shm_name);
+    return;
+}
+
+void CacheNIC::resetIPC_Ack(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 29));
+    return;
+}
+
+void CacheNIC::setIPC_Data(uint32_t *ptr, uint32_t data, int const_pos, int varied_pos){
+    *(ptr + const_pos + varied_pos) = data;
+    return;
+}
+
+void CacheNIC::setIPC_Valid(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) | (0b1 << 30));
+    return;
+}
+
+void CacheNIC::resetIPC_Valid(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 30));
+    return;
 }
 
 void CacheNIC::datatxProcess()
