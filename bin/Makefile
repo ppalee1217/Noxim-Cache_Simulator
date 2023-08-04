@@ -30,7 +30,7 @@ CXXFLAGS := $(OPT) $(OTHER) $(DEBUG)
 
 INCDIR := -I$(SRCDIR) -isystem $(SYSTEMC_ROOT)/include -I$(YAML)/include
 LIBDIR := -L$(SRCDIR) -L$(SYSTEMC_ROOT)/lib-linux64 -L$(YAML)/lib
-LDLIBS := -lrt
+LDLIBS := -lrt -lsystemc
 
 LIBS := -lsystemc -lm -lyaml-cpp
 
@@ -44,7 +44,7 @@ $(MODULE): $(OBJS)
 
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCDIR) -c $< -o $@ $(LDLIBS)
 
 clean:
 	rm -f $(OBJS) $(MODULE) *~

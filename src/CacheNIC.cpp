@@ -211,59 +211,143 @@ void CacheNIC::datarxProcess()
 
 void CacheNIC::checkCachePackets()
 {
-    if (reset.read())
-    {
-        
-    }
-    else
-    {
+    while(true){
+        if (reset.read())
+        {
+            packetsFromCache.clear();
+        }
+        else
+        {
+            std::string shm_name_tmp = "cache_nic" + std::to_string(local_id) + "_CACHE";
+            char *shm_name = new char[shm_name_tmp.size()+1];
+            std::strcpy (shm_name, shm_name_tmp.c_str());
+            cout << "SHM_NAME: " << shm_name << endl;
+            // Creating shared memory object
+            int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
+            // Setting file size
+            ftruncate(fd, SHM_SIZE);
+            // Mapping shared memory object to process address space
+            uint32_t* ptr = (uint32_t*)mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            memset(ptr, 0, SHM_SIZE);
+            uint32_t src_id, dst_id, packet_id, req, data, read, request_size;
+            uint32_t data_test;
+            uint32_t ready, valid, ack;
+            bool pause =false;
+            cout << "Wait for IPC channel to set valid signal." << endl;
+            // Reading from shared memory object
+            while(CHECKVALID(ptr) != 1){
+                setIPC_Ready(ptr); // Set ready signal
+                // cout << "<<Data TEST>>" << endl;
+                // if(local_id == 4){
+                //     cout << "(Reader" << local_id << ") Address = " << std::hex << ptr << std::dec << endl;
+                //     for(int i =0;i<16;i++){
+                //         data_test = GETTEST(ptr, i);
+                //         cout << "data_test" << i << " = 0x" << std::hex << data_test << std::dec << endl;
+                //         // cout << "data_test_tmp" << i << " = 0x" << std::hex << data_test_tmp[i] << std::dec << endl;
 
+                //     }
+                // }
+                // cout << endl;
+                wait();
+                //     if(data_test != data_test_tmp[i] || pause){
+                //         getchar();
+                //         if(i==15)
+                //             pause = false;
+                //         else
+                //             pause = true;
+                //     }
+                //     data_test_tmp[i] = data_test;
+                // }
+                // cout << "pause = " << pause << endl;
+                // cout <<endl;
+            }
+            cout << "<<Start transaction with IPC (Read) >>" << endl;
+            ready = CHECKREADY(ptr);
+            valid = CHECKVALID(ptr);
+            // cout << "ready = " << ready << endl;
+            // cout << "valid = " << valid << endl;
+            resetIPC_Ready(ptr);
+            src_id = GETSRC_ID(ptr);
+            dst_id = GETDST_ID(ptr);
+            packet_id = GETPACKET_ID(ptr);
+            cout << "<<Request received!>>" << endl;
+            cout << "src_id = " << src_id << endl;
+            cout << "dst_id = " << dst_id << endl;
+            for(int i = 0; i < 2; i++) {
+                req = GETREQ(ptr, i);
+                cout << "req[" << i << "] = 0x" << std::hex << req << std::dec << endl;
+            }
+            for(int i = 0; i < 8; i++) {
+                data = GETDATA(ptr, i);
+                cout << "data[" << i << "] = 0x" << std::hex << data << std::dec << endl;
+            }
+            read = GETREAD(ptr);
+            cout << "read (1 = true): " << read << endl;
+            request_size = GETREQUEST_SIZE(ptr);
+            cout << "request_size = " << request_size << endl;
+            setIPC_Ack(ptr);
+            // data_test = GETTEST(ptr, 15);
+            cout << "<Reader Transaction completed!>" << endl << endl;
+            while(CHECKACK(ptr) == 1){
+                wait();
+            }
+            sleep(5);
+        }
+        wait();
     }
-    return;
 }
 
 void CacheNIC::checkNoCPackets()
 {
-    if (reset.read())
-    {
-        received_packets.clear();
-        received_datapackets.clear();
-        packetBuffers.clear();
-    }
-    else
-    {
-        if(received_packets.size()!=0){
-            for(int i=0;i<received_datapackets.size();i++){
-                //* Here is a assumption that the data packet of same request will be received before other data packet from the same PE
-                if(received_packets[0].src_id == received_datapackets[i].src_id){
-                    cout << "CacheNIC " << local_id << " received a Data & Req packet from PE " << received_datapackets[i].src_id << endl;
-                    cout << "Request type is (Read is 1) " << received_packets[0].payload[0].read << endl;
-                    cout << "Request size is " << received_packets[0].payload[0].request_size << endl;
-                    cout << "Request address is 0x" << std::hex << received_packets[0].payload[0].data << received_packets[0].payload[1].data << std::dec << endl;
-                    if(received_packets[0].payload[0].read != 1){
-                        for(int j=0;j<received_datapackets[i].payload.size();j++){
-                            cout << "Data flit " << j << " is 0x" << std::hex << received_datapackets[i].payload[j].data << std::dec << endl;
+    while(true){
+        if (reset.read())
+        {
+            received_packets.clear();
+            received_datapackets.clear();
+            packetBuffers.clear();
+        }
+        else
+        {
+            // cout << local_id << " check NoC packets" << endl;
+            // if(!transactionFlag){
+            if(received_packets.size()!=0){
+                for(int i=0;i<received_datapackets.size();i++){
+                    //* Here is a assumption that the data packet of same request will be received before other data packet from the same PE
+                    if(received_packets[0].src_id == received_datapackets[i].src_id){
+                        cout << "CacheNIC " << local_id << " received a Data & Req packet from PE " << received_datapackets[i].src_id << endl;
+                        cout << "Request type is (Read is 1) " << received_packets[0].payload[0].read << endl;
+                        cout << "Request size is " << received_packets[0].payload[0].request_size << endl;
+                        cout << "Request address is 0x" << std::hex << received_packets[0].payload[0].data << received_packets[0].payload[1].data << std::dec << endl;
+                        cout << "Request data packet size is " << received_datapackets[i].payload.size() << endl;
+                        if(received_datapackets[i].payload.size() != 0){
+                            for(int j=0;j<received_datapackets[i].payload.size();j++){
+                                cout << "Data flit " << j << " is 0x" << std::hex << received_datapackets[i].payload[j].data << std::dec << endl;
+                            }
                         }
+                        cout << endl;
+                        transaction(received_packets[0], received_datapackets[i]);
+                        received_packets.erase(received_packets.begin());
+                        received_datapackets.erase(received_datapackets.begin()+i);
+                        //* For debug test (if error occurs when packet number is huge)
+                        cout << "received packets size: " << received_packets.size() << endl;
+                        cout << "received datapackets size: " << received_datapackets.size() << endl;
+                        cout << "packetBuffers size: " << packetBuffers.size() << endl;
+                        cout << endl;
+                        break;
                     }
-                    cout << endl;
-                    transaction(received_packets[0], received_datapackets[i]);
-                    received_packets.erase(received_packets.begin());
-                    received_datapackets.erase(received_datapackets.begin()+i);
-                    //* For debug test (if error occurs when packet number is huge)
-                    // cout << "received packets size: " << received_packets.size() << endl;
-                    // cout << "received datapackets size: " << received_datapackets.size() << endl;
-                    // cout << "packetBuffers size: " << packetBuffers.size() << endl;
-                    cout << endl;
-                    break;
                 }
             }
         }
+        // }
+        // getchar();
+        wait();
     }
 }
 
 void CacheNIC::transaction(Packet & req_packet, Packet & data_packet){
-    cout << "<<Start transaction with IPC>>" << endl;
-    std::string shm_name_tmp = "cache_nic" + std::to_string(local_id);
+    // transactionFlag = true;
+    cout << "<<Start transaction with IPC (Write) >>" << endl;
+    std::string shm_name_tmp = "cache_nic" + std::to_string(local_id) + "_NOC";
     // src_id(32) | dst_id(32) | packet_id(32) | req(32*2) | data(32*8) | read(32) | request_size(32) | READY(1) | VALID(1)
     char *shm_name = new char[shm_name_tmp.size()+1];
     std::strcpy (shm_name, shm_name_tmp.c_str());
@@ -272,14 +356,17 @@ void CacheNIC::transaction(Packet & req_packet, Packet & data_packet){
     ftruncate(fd, SHM_SIZE);
     uint32_t* ptr = (uint32_t*)mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     uint32_t ready, valid, ack, data_test;
+    memset(ptr, 0, SHM_SIZE);
     cout << "Waiting for IPC channel to set ready signal." << endl;
     while(CHECKREADY(ptr) != 1){
-        // getchar();
-        // ready = CHECKREADY(ptr);
-        // data_test = GETTEST(ptr, 15);
-        // cout << "Checking again..." << endl;
-        // cout << "ready = " << ready << endl;
-        // cout << "data_test = 0x" << std::hex << data_test << std::dec << endl;
+        // cout << "(Writer) Address = " << std::hex << ptr << std::dec << endl;
+        // for(int i =0;i<16;i++){
+        //     data_test = GETTEST(ptr, i);
+        //     cout << "data_test" << i << " = 0x" << std::hex << data_test << std::dec << endl;
+        // }
+        // cout << endl;
+        wait();
+        // sleep(1);
     }
     cout << "IPC channel is ready to read." << endl;
     //* Setting the valid bit and size
@@ -294,7 +381,7 @@ void CacheNIC::transaction(Packet & req_packet, Packet & data_packet){
         setIPC_Data(ptr, req_packet.payload[i].data, 3, i);
     }
     // set request data (write only)
-    if(req_packet.payload[0].read != 1){
+    if(data_packet.payload.size() != 0){
         for(int i=0;i<(DATA_PACKET_SIZE/32);i++){
             setIPC_Data(ptr, data_packet.payload[i].data, 5, i);
         }
@@ -307,21 +394,18 @@ void CacheNIC::transaction(Packet & req_packet, Packet & data_packet){
     setIPC_Data(ptr, req_packet.payload[0].read, 13, 0);
     setIPC_Valid(ptr);
     cout << "Wait for IPC channel to set ack signal." << endl;
+    cout << "(Writer) Address = " << std::hex << ptr << std::dec << endl;
     while(CHECKACK(ptr) != 1){
-        ack = CHECKACK(ptr);
-        cout << "ack = " << ack << endl;
+        wait();
     }
     resetIPC_Ack(ptr);
     cout << "IPC channel ack signal is sent back." << endl;
-    cout << "<Transaction completed!>" << endl;
+    cout << "<Writer Transaction completed!>" << endl;
     resetIPC_Valid(ptr);
     // munmap(ptr, SHM_SIZE);
     // shm_unlink(shm_name);
-    return;
-}
-
-void CacheNIC::resetIPC_Ack(uint32_t *ptr){
-    *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 29));
+    // transactionFlag = false;
+    wait();
     return;
 }
 
@@ -337,6 +421,26 @@ void CacheNIC::setIPC_Valid(uint32_t *ptr){
 
 void CacheNIC::resetIPC_Valid(uint32_t *ptr){
     *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 30));
+    return;
+}
+
+void CacheNIC::setIPC_Ready(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) | (0b1 << 31));
+    return;
+}
+
+void CacheNIC::resetIPC_Ready(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 31));
+    return;
+}
+
+void CacheNIC::setIPC_Ack(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) | (0b1 << 29));
+    return;
+}
+
+void CacheNIC::resetIPC_Ack(uint32_t *ptr){
+    *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 29));
     return;
 }
 
