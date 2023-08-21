@@ -48,7 +48,7 @@ void DataRouter::rxProcess()
                 if (!buffer[i][vc].IsFull()) 
                 {
                     buffer[i][vc].Push(received_flit);
-                    LOG << " DataFlit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
+                    // LOG << " DataFlit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
 
                     power.bufferRouterPush();
                     current_level_rx[i] = 1 - current_level_rx[i];
@@ -58,7 +58,7 @@ void DataRouter::rxProcess()
                 }
                 else
                 {
-                    LOG << " DataFlit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl << endl;
+                    // LOG << " DataFlit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl << endl;
                     assert(i== DIRECTION_LOCAL);
                 }
             }
@@ -117,26 +117,26 @@ void DataRouter::txProcess()
 						r.input = i;
 						r.vc = vc;
 
-						LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
+						// LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
 
 						int rt_status = reservation_table.checkReservation(r,o);
 
 						if (rt_status == RT_AVAILABLE) 
 						{
-                            LOG << " reserving direction " << o << " for flit " << flit << endl;
+                            // LOG << " reserving direction " << o << " for flit " << flit << endl;
                             reservation_table.reserve(r, o);
 						}
 						else if (rt_status == RT_ALREADY_SAME)
 						{
-						    LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
+						    // LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
 						}
 						else if (rt_status == RT_OUTVC_BUSY)
 						{
-						    LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
+						    // LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
 						}
 						else if (rt_status == RT_ALREADY_OTHER_OUT)
 						{
-						    LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
+						    // LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
 						}
 						else assert(false); // no meaningful status here
 					}
@@ -162,7 +162,7 @@ void DataRouter::txProcess()
                     if ( (current_level_tx[o] == ack_tx[o].read()) &&
                         (buffer_full_status_tx[o].read().mask[vc] == false) ) 
                     {
-                        LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
+                        // LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
 
                         flit_tx[o].write(flit);
                         current_level_tx[o] = 1 - current_level_tx[o];
@@ -187,7 +187,7 @@ void DataRouter::txProcess()
                         if (o == DIRECTION_LOCAL) 
                         {
                             power.networkInterface();
-                            LOG << "Consumed flit " << flit << endl;
+                            // LOG << "Consumed flit " << flit << endl;
                             stats.receivedFlit(sc_time_stamp().to_double() / GlobalParams::clock_period_ps, flit);
                             if (GlobalParams:: max_volume_to_be_drained) 
                             {
@@ -206,9 +206,9 @@ void DataRouter::txProcess()
 		  		    }
                     else
                     {
-                        LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
+                        // LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
                         //LOG << " **DEBUG APB: current_level_tx: " << current_level_tx[o] << " ack_tx: " << ack_tx[o].read() << endl;
-                        LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
+                        // LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
 
                         //LOG<<"END_NO_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
                         /*
@@ -293,7 +293,7 @@ int DataRouter::route(const RouteData & route_data)
 void DataRouter::NoP_report() const
 {
     NoP_data NoP_tmp;
-	LOG << "NoP report: " << endl;
+	// LOG << "NoP report: " << endl;
 
     for (int i = 0; i < DIRECTIONS; i++)
     {
@@ -433,7 +433,7 @@ int DataRouter::getNeighborId(int _id, int direction) const
 	my_coord.x--;
 	break;
     default:
-	LOG << "Direction not valid : " << direction;
+	// LOG << "Direction not valid : " << direction;
 	assert(false);
     }
 

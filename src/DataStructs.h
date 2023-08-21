@@ -11,6 +11,9 @@
 #ifndef _DATASTRUCS_H__
 #define _DATASTRUCS_H__
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 #include <systemc.h>
 #include "GlobalParams.h"
 
@@ -38,13 +41,34 @@ enum FlitType
 // Payload -- Payload definition
 struct Payload
 {
-    sc_uint<32> data; // Bus for the data to be exchanged
-    sc_uint<1> read; // Read or Write packet (Only work when transmitting data to/from memory)
-    sc_int<32> request_size; // Request size (When read = true, request size should be specified)
+    uint32_t data; // Bus for the data to be exchanged
+    int read; // Read or Write packet (Only work when transmitting data to/from memory)
+    uint32_t request_size; // Request size (When read = true, request size should be specified)
     inline bool operator==(const Payload &payload) const
     {
         return (payload.data == data);
     }
+};
+
+// Structure used to store information into the table
+struct Communication {
+  int src;			  // ID of the source node (PE)
+  //! dst should be -1 if the packet is transmitted to the cache
+  int dst;			  // ID of the destination node (PE)
+  double pir;			// Packet Injection Rate for the link
+  double por;			// Probability Of Retransmission for the link
+  int t_on;			  // Time (in cycles) at which activity begins
+  int t_off;			// Time (in cycles) at which activity ends
+  int t_period;   // Period after which activity starts again
+
+  int count;      // Packet count(amount) to be transmitted - AddDate: 2023/04/02
+  int isReqt;     // Packet inject to Reqt / Data NoC - AddDate: 2023/05/02
+  //! Noxim <-> Cache modified
+  uint64_t req_addr;
+  uint32_t* req_data;
+  int req_size;     // Read (request data size) / Write (write data size)
+  int req_type;
+  int finish;      // To indicate if NOXIM process is finished
 };
 
 // Packet -- Packet definition
@@ -54,31 +78,55 @@ struct Packet
     int dst_id;
     int vc_id;
     //! Modified
-    int packet_id;      // The packet ID
+    int finish;      // To check if NOXIM process is finished
+    uint32_t packet_id;      // The packet ID
     vector <Payload> payload; // To store payload(data) for each flit
     //!
     double timestamp; // SC timestamp at packet generation
     int size;
     int flit_left; // Number of remaining flits inside the packet
     bool use_low_voltage_path;
-
     // Constructors
     Packet() {}
 
-    Packet(const int s, const int d, const int vc, const double ts, const int sz)
+    Packet(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t addr, const uint32_t* data, const int fin, const int req_sz, const int isReqt, const uint32_t pkt_id)
     {
-        make(s, d, vc, ts, sz);
+        make(s, d, vc, ts, sz, r, addr, data, fin, req_sz, isReqt, pkt_id);
     }
 
-    void make(const int s, const int d, const int vc, const double ts, const int sz)
+    void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t addr, const uint32_t* data, const int fin, const int req_sz, const int isReqt, const uint32_t pkt_id)
     {
         src_id = s;
         dst_id = d;
         vc_id = vc;
-        timestamp = ts;
         size = sz;
         flit_left = sz;
+        timestamp = ts;
         use_low_voltage_path = false;
+        //! Modified
+        if(fin)
+            finish = 1;
+        else
+            finish = 0;
+        packet_id = pkt_id;
+        payload.clear();
+        for(int i=0;i<sz;i++){
+            Payload p;
+            if(isReqt)
+                p.data = (addr >> (1-i)*32);
+            else
+                p.data = data[i];
+
+            if(r){
+                p.request_size = req_sz;
+                p.read = 1;
+            }
+            else{
+                p.request_size = sz;
+                p.read = 0;
+            }
+            payload.push_back(p);
+        }
     }
 };
 
@@ -147,7 +195,8 @@ struct Flit
     int dst_id;
     int vc_id;          // Virtual Channel
     //! Modified
-    int packet_id;      // The packet ID
+    int finish;      // To check if NOXIM process is finished
+    uint32_t packet_id;      // The packet ID
     //!
     FlitType flit_type; // The flit type (FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL)
     int sequence_no;    // The sequence number of the flit inside the packet
@@ -183,7 +232,8 @@ struct DataFlit
     int dst_id;
     int vc_id;
     //! Modified
-    int packet_id;      // The packet ID
+    int finish;      // To check if NOXIM process is finished
+    uint32_t packet_id;      // The packet ID
     //!
     FlitType flit_type;
     int sequence_no;

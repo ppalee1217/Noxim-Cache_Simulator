@@ -8,8 +8,8 @@
  * This file contains the definition of the global traffic table
  */
 
-#ifndef __NOXIMGLOBALTRAFFIC_TABLE_H__
-#define __NOXIMGLOBALTRAFFIC_TABLE_H__
+#ifndef __NOXIMGLOBALTRAFFIC_TABLE_NIC_H__
+#define __NOXIMGLOBALTRAFFIC_TABLE_NIC_H__
 
 #include <stdio.h>
 #include <cmath>
@@ -30,12 +30,10 @@
 
 using namespace std;
 
-class GlobalTrafficTable {
+class GlobalTrafficTableNIC {
 
 public:
-    GlobalTrafficTable(); 
-    // Load traffic table from file. Returns true if ok, false otherwise
-    bool load(const char *fname);
+    GlobalTrafficTableNIC(); 
     // Returns the cumulative pir por along with a vector of pairs. The
     // first component of the pair is the destination. The second
     // component is the cumulative shotting probability.
@@ -53,7 +51,7 @@ public:
     void addTraffic(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type);
 
 private:
-    vector < Communication > traffic_table;
+    vector < Communication > traffic_table_NIC;
 };
 
 #endif

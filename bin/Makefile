@@ -30,7 +30,7 @@ CXXFLAGS := $(OPT) $(OTHER) $(DEBUG)
 
 INCDIR := -I$(SRCDIR) -isystem $(SYSTEMC_ROOT)/include -I$(YAML)/include
 LIBDIR := -L$(SRCDIR) -L$(SYSTEMC_ROOT)/lib-linux64 -L$(YAML)/lib
-LDLIBS := -lrt -lsystemc
+LDLIBS := -lrt -lsystemc -pthread
 
 LIBS := -lsystemc -lm -lyaml-cpp
 

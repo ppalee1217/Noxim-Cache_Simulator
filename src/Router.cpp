@@ -58,7 +58,7 @@ void Router::rxProcess()
 
 		    // Store the incoming flit in the circular buffer
 		    buffer[i][vc].Push(received_flit);
-		    LOG << " Flit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
+		    // LOG << " Flit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
 
 		    power.bufferRouterPush();
 
@@ -75,7 +75,7 @@ void Router::rxProcess()
 		{
 		    // should not happen with the new TBufferFullStatus control signals    
 		    // except for flit coming from local PE, which don't use it 
-		    LOG << " Flit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl << endl;
+		    // LOG << " Flit " << received_flit << " buffer full Input[" << i << "][" << vc <<"]" << endl << endl;
 		    assert(i== DIRECTION_LOCAL);
 		}
 
@@ -149,26 +149,26 @@ void Router::txProcess()
 						r.input = i;
 						r.vc = vc;
 
-						LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
+						// LOG << " checking availability of Output[" << o << "] for Input[" << i << "][" << vc << "] flit " << flit << endl;
 
 						int rt_status = reservation_table.checkReservation(r,o);
 
 						if (rt_status == RT_AVAILABLE) 
 						{
-						LOG << " reserving direction " << o << " for flit " << flit << endl;
+						// LOG << " reserving direction " << o << " for flit " << flit << endl;
 						reservation_table.reserve(r, o);
 						}
 						else if (rt_status == RT_ALREADY_SAME)
 						{
-						LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
+						// LOG << " RT_ALREADY_SAME reserved direction " << o << " for flit " << flit << endl;
 						}
 						else if (rt_status == RT_OUTVC_BUSY)
 						{
-						LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
+						// LOG << " RT_OUTVC_BUSY reservation direction " << o << " for flit " << flit << endl;
 						}
 						else if (rt_status == RT_ALREADY_OTHER_OUT)
 						{
-						LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
+						// LOG  << "RT_ALREADY_OTHER_OUT: another output previously reserved for the same flit " << endl;
 						}
 						else assert(false); // no meaningful status here
 					}
@@ -205,7 +205,7 @@ void Router::txProcess()
 					(buffer_full_status_tx[o].read().mask[vc] == false) ) 
 				{
 					//if (GlobalParams::verbose_mode > VERBOSE_OFF) 
-					LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
+					// LOG << "Input[" << i << "][" << vc << "] forwarded to Output[" << o << "], flit: " << flit << endl;
 
 					flit_tx[o].write(flit);
 					current_level_tx[o] = 1 - current_level_tx[o];
@@ -231,7 +231,7 @@ void Router::txProcess()
 					if (o == DIRECTION_LOCAL) 
 					{
 						power.networkInterface();
-						LOG << "Consumed flit " << flit << endl;
+						// LOG << "Consumed flit " << flit << endl;
 						stats.receivedFlit(sc_time_stamp().to_double() / GlobalParams::clock_period_ps, flit);
 						if (GlobalParams:: max_volume_to_be_drained) 
 						{
@@ -251,9 +251,9 @@ void Router::txProcess()
 		  		}
 			else
 			{
-				LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
+				// LOG << " Cannot forward Input[" << i << "][" << vc << "] to Output[" << o << "], flit: " << flit << endl;
 				//LOG << " **DEBUG APB: current_level_tx: " << current_level_tx[o] << " ack_tx: " << ack_tx[o].read() << endl;
-				LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
+				// LOG << " **DEBUG buffer_full_status_tx " << buffer_full_status_tx[o].read().mask[vc] << endl;
 
 				//LOG<<"END_NO_cl_tx="<<current_level_tx[o]<<"_req_tx="<<req_tx[o].read()<<" _ack= "<<ack_tx[o].read()<< endl;
 				/*
@@ -413,7 +413,7 @@ vector < int > Router::routingFunction(const RouteData & route_data)
 
                 if (connectedHubs(it1->second,it2->second))
                 {
-                    LOG << "Destination node " << route_data.dst_id << " is directly connected to a reachable RadioHub" << endl;
+                    // LOG << "Destination node " << route_data.dst_id << " is directly connected to a reachable RadioHub" << endl;
                     vector<int> dirv;
                     dirv.push_back(DIRECTION_HUB);
                     return dirv;
@@ -423,7 +423,7 @@ vector < int > Router::routingFunction(const RouteData & route_data)
             if (GlobalParams::winoc_dst_hops>0)
             {
                 // TODO: for the moment, just print the set of nexts hops to check everything is ok
-                LOG << "NEXT_DELTA_HOPS (from node " << route_data.src_id << " to " << route_data.dst_id << ") >>>> :";
+                // LOG << "NEXT_DELTA_HOPS (from node " << route_data.src_id << " to " << route_data.dst_id << ") >>>> :";
                 vector<int> nexthops;
                 nexthops = nextDeltaHops(route_data);
                 //for (int i=0;i<nexthops.size();i++) cout << "(" << nexthops[i] <<")-->";
@@ -434,7 +434,7 @@ vector < int > Router::routingFunction(const RouteData & route_data)
                 	int candidate_hop = nexthops[dest_position-i];
 					if ( hasRadioHub(candidate_hop) && !sameRadioHub(local_id,candidate_hop) ) {
 						//LOG << "Checking candidate hop " << candidate_hop << " ... It's OK!" << endl;
-						LOG << "Relaying to hub-connected node " << candidate_hop << " to reach destination " << route_data.dst_id << endl;
+						// LOG << "Relaying to hub-connected node " << candidate_hop << " to reach destination " << route_data.dst_id << endl;
 						vector<int> dirv;
 						dirv.push_back(DIRECTION_HUB_RELAY+candidate_hop);
 						return dirv;
@@ -469,7 +469,7 @@ int Router::route(const RouteData & route_data)
 void Router::NoP_report() const
 {
     NoP_data NoP_tmp;
-	LOG << "NoP report: " << endl;
+	// LOG << "NoP report: " << endl;
 
     for (int i = 0; i < DIRECTIONS; i++) {
 	NoP_tmp = NoP_data_in[i].read();
@@ -609,7 +609,7 @@ int Router::getNeighborId(int _id, int direction) const
 	my_coord.x--;
 	break;
     default:
-	LOG << "Direction not valid : " << direction;
+	// LOG << "Direction not valid : " << direction;
 	assert(false);
     }
 

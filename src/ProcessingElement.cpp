@@ -30,18 +30,18 @@ void ProcessingElement::rxProcess()
             Flit flit_tmp = flit_rx.read();
             current_level_rx = 1 - current_level_rx; // Negate the old value for Alternating Bit Protocol (ABP)
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
-                cout << "(Request)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
-                cout << "Received request: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
-                cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
-                cout << "Received request type(read = 1): " << flit_tmp.payload.read << endl;
-                cout << "Received request size: " << flit_tmp.payload.request_size << endl;
-                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                // cout << "(Request)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                // cout << "Received request: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
+                // cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
+                // cout << "Received request type(read = 1): " << flit_tmp.payload.read << endl;
+                // cout << "Received request size: " << flit_tmp.payload.request_size << endl;
+                // cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
             }
             if (flit_tmp.flit_type == FLIT_TYPE_TAIL){
-                cout << "(Request)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
-                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                // cout << "(Request)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                // cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
             }
-            cout << endl;
+            // cout << endl;
         }
         ack_rx.write(current_level_rx);
     }
@@ -89,6 +89,7 @@ Flit ProcessingElement::nextFlit()
     flit.dst_id = packet.dst_id;
     flit.vc_id = packet.vc_id;
     //! Modified
+    flit.finish = packet.finish;
     flit.packet_id = packet.packet_id;
     //!
     flit.timestamp = packet.timestamp;
@@ -108,12 +109,12 @@ Flit ProcessingElement::nextFlit()
     else{
         flit.payload = packet.payload[flit.sequence_no-1];
     }
-    cout << "==========" << endl;
-    cout << "PE " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
-    cout << "Flit type: " << flit.flit_type << endl;
-    cout << "Sequence number: " << flit.sequence_no << endl;
-    cout << "Sent request: 0x" << std::hex << flit.payload.data << std::dec << endl;
-    cout << "==========" << endl;
+    // cout << "==========" << endl;
+    // cout << "PE " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
+    // cout << "Flit type: " << flit.flit_type << endl;
+    // cout << "Sequence number: " << flit.sequence_no << endl;
+    // cout << "Sent request: 0x" << std::hex << flit.payload.data << std::dec << endl;
+    // cout << "==========" << endl;
     //! Modified
 
     flit.hub_relay_node = NOT_VALID;
@@ -140,16 +141,16 @@ void ProcessingElement::datarxProcess()
             DataFlit flit_tmp = dataflit_rx.read();
             datacurrent_level_rx = 1 - datacurrent_level_rx;
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
-                cout << "(Data)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
-                cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
-                cout << "Received data: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
-                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                // cout << "(Data)PE " << local_id << " received a BODY flit from PE " << flit_tmp.src_id << endl;
+                // cout << "Received request seq no.: " << flit_tmp.sequence_no << endl;
+                // cout << "Received data: 0x" << std::hex << flit_tmp.payload.data << std::dec << endl;
+                // cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
             }
             if (flit_tmp.flit_type == FLIT_TYPE_TAIL){
-                cout << "(Data)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
-                cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
+                // cout << "(Data)PE " << local_id << " received a TAIL flit from PE " << flit_tmp.src_id << endl;
+                // cout << "Timestamp of flit: " << flit_tmp.timestamp << endl;
             }
-            cout << endl;
+            // cout << endl;
             dataack_rx.write(datacurrent_level_rx);
         }
     }
@@ -197,6 +198,7 @@ DataFlit ProcessingElement::nextDataFlit()
     flit.dst_id = packet.dst_id;
     flit.vc_id = packet.vc_id;
     //! Modified
+    flit.finish = packet.finish;
     flit.packet_id = packet.packet_id;
     //!
     flit.timestamp = packet.timestamp;
@@ -215,12 +217,12 @@ DataFlit ProcessingElement::nextDataFlit()
     else{
         flit.payload = packet.payload[flit.sequence_no-1];
     }
-    cout << "==========" << endl;
-    cout << "PE " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
-    cout << "Flit type: " << flit.flit_type << endl;
-    cout << "Sequence number: " << flit.sequence_no << endl;
-    cout << "Sent data: 0x" << std::hex << flit.payload.data << std::dec << endl;
-    cout << "==========" << endl;
+    // cout << "==========" << endl;
+    // cout << "PE " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
+    // cout << "Flit type: " << flit.flit_type << endl;
+    // cout << "Sequence number: " << flit.sequence_no << endl;
+    // cout << "Sent data: 0x" << std::hex << flit.payload.data << std::dec << endl;
+    // cout << "==========" << endl;
     //!
 
     datapacket_queue.front().flit_left--;
@@ -285,15 +287,31 @@ bool ProcessingElement::canShot(Packet &packet, int isReqt)
         if (never_transmit)
             return false;
 
-        int dstfromTable;
-        int remaining_traffic = traffic_table->getPacketinCommunication(local_id, dstfromTable, isReqt);
-        // cout << "in NoC " << isReqt << " remaining Traffic in PE: " << remaining_traffic << endl;
-        // getchar();
-        if (remaining_traffic > 0)
+        Communication comm = traffic_table->getPacketinCommunication(local_id, isReqt);
+        if (comm.src != -1)
         {
+            uint32_t packet_id = rand();
             int vc = randInt(0, GlobalParams::n_virtual_channels - 1);
-            packet.make(local_id, dstfromTable, vc, now, getRandomSize());
+            packet.make(local_id, comm.dst, vc, now, (isReqt) ? (REQ_PACKET_SIZE/32 + 2) : (DATA_PACKET_SIZE/32 + 2), comm.req_type, comm.req_addr, comm.req_data, comm.finish, comm.req_size, isReqt, packet_id);
+            fprintf(_log_packet, "================\n");
+            fprintf(_log_packet, "Src id: %d\n", local_id);
+            fprintf(_log_packet, "Dst id: %d\n", comm.dst);
+            fprintf(_log_packet, "Packet is %s\n", (isReqt) ? "request" : "data");
+            fprintf(_log_packet, "Packet id: %u\n", packet_id);
+            fprintf(_log_packet, "Packet size: %d\n", packet.size);
+            fprintf(_log_packet, "Packet timestamp: %f\n", packet.timestamp);
+            fprintf(_log_packet, "Packet req type: %d\n", comm.req_type);
+            fprintf(_log_packet, "Packet req addr: 0x%016x\n", comm.req_addr);
+            fprintf(_log_packet, "Packet count: %d\n", comm.count);
+            fprintf(_log_packet, "Packet req count: %d\n", comm.finish);
+            // if(isReqt){
+            //     printf("================\n");
+            //     printf("CacheNIC %d sent packet to PE %d\n", local_id, comm.dst);
+            //     printf("Packet addr: 0x%016x\n", comm.req_addr);
+            //     printf("Packet id: %u\n", packet_id);
+            // }
             shot = true;
+            // printf("CacheNIC %d: %s packet to PE %d\n", local_id, (isReqt) ? "request" : "data", comm->dst);
         }
         else
             shot = false;
@@ -458,7 +476,7 @@ Packet ProcessingElement::trafficTest(int isReqt)
     p.src_id = local_id;
     int dst = 0;
     int packet_size = 0;
-    bool read;
+    bool read, finish = false;
     (isReqt==1) ? cout << "<<Request channel>>" << endl : cout << "<<Data channel>>" << endl;
     std::string data = "";
     cout << "Current PE id: " << local_id << endl;
@@ -475,6 +493,8 @@ Packet ProcessingElement::trafficTest(int isReqt)
             cout << "Enter request data size (in flits): ";
             cin >> request_size;
         }
+        cout << "Is request all finished(1) or not(0): ";
+        cin >> finish;
         int input_data_size = data.size();
         input_data_size = REQ_PACKET_SIZE/4 - input_data_size;
         std::string paddingZero = "";
@@ -501,13 +521,13 @@ Packet ProcessingElement::trafficTest(int isReqt)
             cout << "Enter write data (in HEX): ";
             cin >> data;
             int input_data_size = data.size();
-            input_data_size = DATA_PACKET_SIZE/4 - input_data_size;
+            input_data_size = (DATA_PACKET_SIZE/4) - input_data_size;
             std::string paddingZero = "";
             for(int i = 0; i < input_data_size; i++){
                 paddingZero += "0";
             }
             data = data + paddingZero;
-            packet_size = DATA_PACKET_SIZE/32;
+            packet_size = (DATA_PACKET_SIZE/32);
             cout << "Packet size is : " << packet_size << ", each flit is 32-bits" << endl;
             for(int i = 0; i < packet_size; i++){
                 string data_payload = data.substr(i*8, 8);
@@ -529,12 +549,13 @@ Packet ProcessingElement::trafficTest(int isReqt)
             cout << "Read data from cache" << endl << endl;
         }
     }
-
+    p.finish = finish;
     p.dst_id = dst;
     p.timestamp = sc_time_stamp().to_double() / GlobalParams::clock_period_ps;
     //! Modified
     p.size = p.flit_left = (packet_size + 2); //* 2 flits for header and tail
-    p.packet_id = randInt(0, 1000);
+    srand(time(NULL));
+    p.packet_id = rand();
     //!
     p.vc_id = randInt(0, GlobalParams::n_virtual_channels - 1);
 

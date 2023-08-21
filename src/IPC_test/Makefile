@@ -9,10 +9,11 @@ LDLIBS := -lrt
 
 BIN_DIR := bin
 BIN_TESTER := $(BIN_DIR)/IPC_tester
+BIN_TESTER_CACHE := $(BIN_DIR)/IPC_tester_cache
 
 .PHONY: all clean format
 
-all: $(BIN_TESTER)
+all: $(BIN_TESTER) $(BIN_TESTER_CACHE)
 
 $(BIN_DIR)/%: %.cc
 	-@mkdir -p $(@D)

@@ -20,6 +20,7 @@
 #define CHECKREADY(p) (*(p + 15) >> 31)
 #define CHECKVALID(p) ((*(p + 15) >> 30) & 0b1)
 #define CHECKACK(p) ((*(p + 15) >> 29) & 0b1)
+#define CHECKFINISH(p) ((*(p + 15) >> 28) & 0b1)
 #define GETSRC_ID(p) (*p)
 #define GETDST_ID(p) (*(p + 1))
 #define GETPACKET_ID(p) (*(p + 2))
@@ -46,7 +47,7 @@ void resetIPC_Ready(uint32_t *ptr);
 void setIPC_Ack(uint32_t *ptr);
 void resetIPC_Ack(uint32_t *ptr);
 void setIPC_Data(uint32_t *ptr, uint32_t data, int const_pos, int varied_pos);
-
+void setIPC_Finish(uint32_t *ptr, bool finish);
 void *reader(void* arg);
 void *writer(void* arg);
 
@@ -270,5 +271,15 @@ void setIPC_Ack(uint32_t *ptr){
 
 void resetIPC_Ack(uint32_t *ptr){
     *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 29));
+    return;
+}
+
+void setIPC_Finish(uint32_t *ptr, bool finish){
+    if(finish){
+        *(ptr + 15) = (*(ptr + 15) | (0b1 << 28));
+    }
+    else{
+        *(ptr + 15) = (*(ptr + 15) & ~(0b1 << 28));
+    }
     return;
 }

@@ -13,8 +13,15 @@
 
 #include <queue>
 #include <systemc.h>
+#include <iostream>
 #include <string.h>
+#include <cstring>
 #include <string>
+#include <stdint.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <ctime>
+#include <math.h>
 
 #include "DataStructs.h"
 #include "GlobalTrafficTable.h"
@@ -61,6 +68,9 @@ SC_MODULE(ProcessingElement)
     void datatxProcess();
     DataFlit nextDataFlit();
 
+    //! Modified
+    time_t t;
+    FILE * _log_packet;
     // Registers
     int local_id;		// Unique identification number
     bool current_level_rx;	// Current level for Alternating Bit Protocol (ABP)
@@ -102,6 +112,11 @@ SC_MODULE(ProcessingElement)
 
     // Constructor
     SC_CTOR(ProcessingElement) {
+        srand((unsigned int) time(&t));
+        std::string str_p = "log_p.txt";
+        const char * name_p = str_p.c_str();
+        _log_packet = fopen(name_p, "a");
+        
         SC_METHOD(rxProcess);
         sensitive << reset;
         sensitive << clock.pos();

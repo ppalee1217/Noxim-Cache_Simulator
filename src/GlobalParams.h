@@ -96,6 +96,12 @@ using namespace std;
 // Packet size in NOC
 #define DATA_PACKET_SIZE 256
 #define REQ_PACKET_SIZE 64
+// Cache Config
+#define ADDR_MAPPING_MODE 0
+#define BANK_NUM 4
+#define CACHE_SIZE 65536
+#define CACHE_WAYS 8
+#define CACHE_BLOCK_SIZE 32
 
 typedef struct {
     pair<double, double> ber;
