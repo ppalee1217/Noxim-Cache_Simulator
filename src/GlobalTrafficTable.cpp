@@ -39,89 +39,99 @@ bool GlobalTrafficTable::load(const char *fname)
 				int src, dst; // Mandatory
 				double pir, por;
 				int t_on, t_off, t_period;
-				int count, isReqt;
                 //! modified
-                int req_size;
+                int req_type, tensor_size;
+                int tensor_id;
+                int depend_tensor_num;
+                int depend_tenosr_id_1, depend_tenosr_id_2, depend_tenosr_id_3, depend_tenosr_id_4;
+                bool isOutput; //* If next tensor is a output tensor
+                //* Indicate that this tensor is the last input tensor in this round
                 uint64_t req_addr;
-                uint32_t req_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-                int req_type, finish;
+                //TODO: The total packet number of one request (tensor) is calculated by memory size divided by cache block size
 
 				int params =
-						sscanf(line, "%d %d %d %d %d %d %llx %d %x %x %x %x %x %x %x %x %lf %lf %d %d %d",
-                            &src, &dst, &finish, &count, &isReqt, &req_size, &req_addr,
-                            &req_type, &req_data[0], &req_data[1], &req_data[2], &req_data[3],
-                            &req_data[4], &req_data[5], &req_data[6], &req_data[7],
-                            &pir, &por, &t_on, &t_off, &t_period);
+                    sscanf(line, "%d %d %d %d %llx %d %d %d %d %d %d %lf %lf %d %d %d",
+                        &src, &dst, &req_type, &tensor_size, &req_addr,
+                        &tensor_id, &depend_tensor_num,
+                        &depend_tenosr_id_1, &depend_tenosr_id_2, &depend_tenosr_id_3, &depend_tenosr_id_4,
+                        &pir, &por, &t_on, &t_off, &t_period
+                        );
 				if (params >= 2)
 				{
 					// Create a communication from the parameters read on the line
 					Communication communication;
 
-
 					// Mandatory fields
 					communication.src = src;
 					communication.dst = dst;
 
-                    if(params >= 3)
-                        communication.finish = finish;
-                    else
-                        communication.finish = 0;
+                    //! Modified
+					if (params >= 3)
+						communication.req_type = req_type;
+					else
+						communication.req_type = 0;
 
 					if (params >= 4)
-						communication.count = count;
-					else
-						communication.count = 0;
-
-					if (params >= 5)
-						communication.isReqt = isReqt;
-
-                    //! Modified
-                    if (params >= 6)
-						communication.req_size = req_size;
+						communication.tensor_size = tensor_size;
                     else
-                        communication.req_size = 8;
+                        communication.tensor_size = 0;
 
-                    if (params >= 7)
+                    if (params >= 5)
                         communication.req_addr = req_addr;
                     else
                         communication.req_addr = 0;
 
-                    if (params >= 8)
-                        communication.req_type = (req_type == 0) ? 0 : 1;
+                    if (params >= 6)
+                        communication.tensor_id = tensor_id;
                     else
-                        communication.req_type = 0;
+                        communication.tensor_id = 0;
+                    
+                    if (params >= 7)
+                        communication.depend_tensor_num = depend_tensor_num;
+                    else
+                        communication.depend_tensor_num = 0;
+                    
+                    if (params >= 8)
+                        communication.depend_tenosr_id_1 = depend_tenosr_id_1;
+                    else
+                        communication.depend_tenosr_id_1 = 0;
+                    
+                    if (params >= 9)
+                        communication.depend_tenosr_id_2 = depend_tenosr_id_2;
+                    else
+                        communication.depend_tenosr_id_2 = 0;
+                    
+                    if (params >= 10)
+                        communication.depend_tenosr_id_3 = depend_tenosr_id_3;
+                    else
+                        communication.depend_tenosr_id_3 = 0;
 
-                    if (params >= 9){
-                        communication.req_data = (uint32_t*) malloc(sizeof(uint32_t)*8);
-                        if(!req_type)
-                            for(int i=0;i<8;i++)
-                                communication.req_data[i] = req_data[i];
-                        else
-                            for(int i=0;i<8;i++)
-                                communication.req_data[i] = 0;
-                    }
+                    if (params >= 11)
+                        communication.depend_tenosr_id_4 = depend_tenosr_id_4;
+                    else
+                        communication.depend_tenosr_id_4 = 0;
                     //!
 					// Custom PIR
-					if (params >= 17 && pir >= 0 && pir <= 1)
+					if (params >= 6 && pir >= 0 && pir <= 1)
 						communication.pir = pir;
 					else
 						communication.pir =
 								GlobalParams::packet_injection_rate;
 
 					// Custom POR
-					if (params >= 18 && por >= 0 && por <= 1)
+					if (params >= 7 && por >= 0 && por <= 1)
 						communication.por = por;
 					else
 						communication.por = communication.pir; // GlobalParams::probability_of_retransmission;
 
 					// Custom Ton
-					if (params >= 19 && t_on >= 0)
+					if (params >= 8 && t_on >= 0)
 						communication.t_on = t_on;
 					else
 						communication.t_on = 0;
 
 					// Custom Toff
-					if (params >= 20 && t_off >= 0)
+					if (params >= 9 && t_off >= 0)
 					{
 						assert(t_off > t_on);
 						communication.t_off = t_off;
@@ -132,7 +142,7 @@ bool GlobalTrafficTable::load(const char *fname)
 								GlobalParams::simulation_time;
 
 					// Custom Tperiod
-					if (params >= 21 && t_period > 0)
+					if (params >= 10 && t_period > 0)
 					{
 						assert(t_period > t_off);
 						communication.t_period = t_period;
@@ -141,22 +151,7 @@ bool GlobalTrafficTable::load(const char *fname)
 						communication.t_period =
 								GlobalParams::reset_time +
 								GlobalParams::simulation_time;
-                    // if(communication.finish){
-                    //     printf("===========\n");
-                    //     printf("Traffic read from line:\n");
-                    //     printf("src id: %d\n", communication.src);
-                    //     printf("dst id: %d\n", communication.dst);
-                    //     printf("finish: %d\n", communication.finish);
-                    //     printf("count: %d\n", communication.count);
-                    //     printf("isReqt: %d\n", communication.isReqt);
-                    //     printf("req_size: %d\n", communication.req_size);
-                    //     printf("req_addr: %llx\n", communication.req_addr);
-                    //     printf("req_data: %08x %08x %08x %08x %08x %08x %08x %08x\n", communication.req_data[0], communication.req_data[1], communication.req_data[2], communication.req_data[3], communication.req_data[4], communication.req_data[5], communication.req_data[6], communication.req_data[7]);
-                    //     printf("req_type: %d\n", communication.req_type);
-                    //     printf("finish: %d\n", communication.finish);
-                    //     getchar();
-                    // }
-					// Add this communication to the vector of communications
+                    communication.used = false;
 					traffic_table.push_back(communication);
 				}
 			}
@@ -169,13 +164,13 @@ int GlobalTrafficTable::getTrafficSize(){
     return traffic_table.size();
 }
 
+//TODO: Sync with HW
 void GlobalTrafficTable::addTraffic(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type){
     Communication communication;
     communication.src = src_id;
     communication.dst = dst_id;
     // Default values
     communication.count = 1;
-    communication.finish = 0;
     communication.isReqt = isReqt;
     communication.req_addr = req_addr;
     communication.req_type = req_type;
@@ -224,16 +219,14 @@ double GlobalTrafficTable::getCumulativePirPor(
 	return cpirnpor;
 }
 
+//TODO: Move bank choose section to packet make, and change to coalescing version
 // Get each communication packet counts - AddDate: 2023/04/02
-Communication GlobalTrafficTable::getPacketinCommunication(const int src_id, int isReqt)
+Communication GlobalTrafficTable::getPacketinCommunication(const int src_id)
 {
 	for (unsigned int i = 0; i < traffic_table.size(); i++)
 	{
-		if (traffic_table[i].src == src_id && traffic_table[i].count > 0 && traffic_table[i].isReqt == isReqt)
+		if (traffic_table[i].src == src_id && !traffic_table[i].used)
 		{
-            // printf("traffic_table[%d] is used\n", i);
-            // pthread_mutex_lock(&mutex);
-            traffic_table[i].count = traffic_table[i].count - 1;
             if(traffic_table[i].dst == -1){
                 unsigned int index_mask = 0;
                 unsigned int cache_set_index = 0;
@@ -258,17 +251,9 @@ Communication GlobalTrafficTable::getPacketinCommunication(const int src_id, int
                     traffic_table[i].dst = ((choose_bank/(BANK_NUM/4)) + 1)*5 - 1;
                 }
             }
-            req_count++;
-            traffic_table[i].finish = req_count;
-            // pthread_mutex_unlock(&mutex);
+            traffic_table[i].used = true;
 		    return traffic_table[i];
         }
-        // else if(traffic_table[i].count == 0){
-        //     pthread_mutex_lock(&mutex);
-        //     // printf("traffic_table[%d] is erased\n", i);
-        //     traffic_table.erase(traffic_table.begin() + i);
-        //     pthread_mutex_unlock(&mutex);
-        // }
     }
     Communication comm;
     comm.src = -1;

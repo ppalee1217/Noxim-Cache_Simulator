@@ -40,6 +40,8 @@
 
 //! Calculate the size of the packet in runtime
 #define SHM_SIZE 512
+//! packet flit 1~16
+//! flit size 1~8 words
 // src_id(32) | dst_id(32) | packet_id(32) | req(32*2) | data(32*8) | read(32) | request_size(32) | READY(1) | VALID(1) | ACK(1) | FINISH(1)
 //* Total 482 bits
 #define CHECKREADY(p) (*(p + 15) >> 31)

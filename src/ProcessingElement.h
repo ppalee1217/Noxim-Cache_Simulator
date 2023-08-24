@@ -81,7 +81,7 @@ SC_MODULE(ProcessingElement)
     // Functions
     void rxProcess();		// The receiving process
     void txProcess();		// The transmitting process
-    bool canShot(Packet & packet, int isReqt);	// True when the packet must be shot
+    bool canShot();	// True when the packet must be shot
     Flit nextFlit();	// Take the next flit of the current packet
     Packet trafficTest(int isReqt);	// used for testing traffic
     Packet trafficRandom();	// Random destination distribution

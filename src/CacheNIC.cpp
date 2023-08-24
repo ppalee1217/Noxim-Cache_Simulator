@@ -44,7 +44,6 @@ void CacheNIC::rxProcess()
                 packet_tmp.dst_id = flit_tmp.dst_id;
                 packet_tmp.vc_id = flit_tmp.vc_id;
                 packet_tmp.packet_id = flit_tmp.packet_id;
-                packet_tmp.finish = flit_tmp.finish;
                 packet_tmp.timestamp = flit_tmp.timestamp;
                 packet_tmp.payload.clear();
                 reqBuffer_mutex.lock();
@@ -152,7 +151,6 @@ Flit CacheNIC::nextFlit()
     flit.vc_id = packet.vc_id;
     //! Modified
     flit.packet_id = packet.packet_id;
-    flit.finish = packet.finish;
     //!
     flit.timestamp = packet.timestamp;
     flit.sequence_no = packet.size - packet.flit_left;
@@ -215,7 +213,6 @@ void CacheNIC::datarxProcess()
                 packet_tmp.dst_id = flit_tmp.dst_id;
                 packet_tmp.vc_id = flit_tmp.vc_id;
                 packet_tmp.packet_id = flit_tmp.packet_id;
-                packet_tmp.finish = flit_tmp.finish;
                 packet_tmp.timestamp = flit_tmp.timestamp;
                 packet_tmp.payload.clear();
                 dataBuffer_mutex.lock();
@@ -493,7 +490,6 @@ void CacheNIC::transaction(Packet req_packet, Packet data_packet){
     // for(int i=0;i<(DATA_PACKET_SIZE/32);i++){
     //     fprintf(_log_w, "data[%d] is: 0x%08x\n", i, data_packet.payload[i].data);
     // }
-    fprintf(_log_w, "finish is: %d\n", req_packet.finish);
     fprintf(_log_w, "packet timestamp is: %d\n", req_packet.timestamp);
     fprintf(_log_w, "datapacket timestamp is: %d\n", data_packet.timestamp);
     fprintf(_log_w, "(%d) Transaction count = %d\n", local_id, transcation_count);
@@ -606,7 +602,6 @@ DataFlit CacheNIC::nextDataFlit()
     flit.dst_id = packet.dst_id;
     flit.vc_id = packet.vc_id;
     //! Modified
-    flit.finish = packet.finish;
     flit.packet_id = packet.packet_id;
     //!
     flit.timestamp = packet.timestamp;
@@ -620,10 +615,10 @@ DataFlit CacheNIC::nextDataFlit()
         flit.flit_type = FLIT_TYPE_BODY;
     //! Modified
     if(packet.size == packet.flit_left || packet.flit_left == 1){
-        flit.payload = packet.payload[0];
+        flit.data_payload = packet.data_payload[0];
     }
     else{
-        flit.payload = packet.payload[flit.sequence_no-1];
+        flit.data_payload = packet.data_payload[flit.sequence_no-1];
     }
     // cout << "==========" << endl;
     // cout << "CacheNIC " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;

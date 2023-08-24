@@ -233,7 +233,7 @@ DataFlit ProcessingElement::nextDataFlit()
     return flit;
 }
 
-bool ProcessingElement::canShot(Packet &packet, int isReqt)
+bool ProcessingElement::canShot()
 {
     if (never_transmit)
         return false;
@@ -287,31 +287,15 @@ bool ProcessingElement::canShot(Packet &packet, int isReqt)
         if (never_transmit)
             return false;
 
-        Communication comm = traffic_table->getPacketinCommunication(local_id, isReqt);
+        Communication comm = traffic_table->getPacketinCommunication(local_id);
         if (comm.src != -1)
         {
             uint32_t packet_id = rand();
             int vc = randInt(0, GlobalParams::n_virtual_channels - 1);
             packet.make(local_id, comm.dst, vc, now, (isReqt) ? (REQ_PACKET_SIZE/32 + 2) : (DATA_PACKET_SIZE/32 + 2), comm.req_type, comm.req_addr, comm.req_data, comm.finish, comm.req_size, isReqt, packet_id);
-            fprintf(_log_packet, "================\n");
-            fprintf(_log_packet, "Src id: %d\n", local_id);
-            fprintf(_log_packet, "Dst id: %d\n", comm.dst);
-            fprintf(_log_packet, "Packet is %s\n", (isReqt) ? "request" : "data");
-            fprintf(_log_packet, "Packet id: %u\n", packet_id);
-            fprintf(_log_packet, "Packet size: %d\n", packet.size);
-            fprintf(_log_packet, "Packet timestamp: %f\n", packet.timestamp);
-            fprintf(_log_packet, "Packet req type: %d\n", comm.req_type);
-            fprintf(_log_packet, "Packet req addr: 0x%016x\n", comm.req_addr);
-            fprintf(_log_packet, "Packet count: %d\n", comm.count);
-            fprintf(_log_packet, "Packet req count: %d\n", comm.finish);
-            // if(isReqt){
-            //     printf("================\n");
-            //     printf("CacheNIC %d sent packet to PE %d\n", local_id, comm.dst);
-            //     printf("Packet addr: 0x%016x\n", comm.req_addr);
-            //     printf("Packet id: %u\n", packet_id);
-            // }
+
             shot = true;
-            // printf("CacheNIC %d: %s packet to PE %d\n", local_id, (isReqt) ? "request" : "data", comm->dst);
+            //TODO: Push multiple packet into queue if coalescing happens
         }
         else
             shot = false;

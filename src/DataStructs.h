@@ -17,6 +17,7 @@
 #include <systemc.h>
 #include "GlobalParams.h"
 
+#define FLIT_DATA_SIZE 256
 // Coord -- XY coordinates type of the Tile inside the Mesh
 class Coord
 {
@@ -41,34 +42,61 @@ enum FlitType
 // Payload -- Payload definition
 struct Payload
 {
-    uint32_t data; // Bus for the data to be exchanged
+    uint64_t addr; // Bus for the data to be exchanged
     int read; // Read or Write packet (Only work when transmitting data to/from memory)
     uint32_t request_size; // Request size (When read = true, request size should be specified)
     inline bool operator==(const Payload &payload) const
     {
-        return (payload.data == data);
+        return (payload.addr == addr);
+    }
+};
+
+// DataPayload -- DataPayload definition
+struct DataPayload
+{
+    uint32_t data[8]; // Bus for the data to be exchanged
+    inline bool operator==(const DataPayload &data_payload) const
+    {
+        return (
+            data_payload.data[0] == data[0] &&
+            data_payload.data[1] == data[1] &&
+            data_payload.data[2] == data[2] &&
+            data_payload.data[3] == data[3] &&
+            data_payload.data[4] == data[4] &&
+            data_payload.data[5] == data[5] &&
+            data_payload.data[6] == data[6] &&
+            data_payload.data[7] == data[7]
+            );
     }
 };
 
 // Structure used to store information into the table
 struct Communication {
-  int src;			  // ID of the source node (PE)
-  //! dst should be -1 if the packet is transmitted to the cache
-  int dst;			  // ID of the destination node (PE)
-  double pir;			// Packet Injection Rate for the link
-  double por;			// Probability Of Retransmission for the link
-  int t_on;			  // Time (in cycles) at which activity begins
-  int t_off;			// Time (in cycles) at which activity ends
-  int t_period;   // Period after which activity starts again
+    int src;			  // ID of the source node (PE)
+    //! dst should be -1 if the packet is transmitted to the cache
+    int dst;			  // ID of the destination node (PE)
+    double pir;			// Packet Injection Rate for the link
+    double por;			// Probability Of Retransmission for the link
+    int t_on;			  // Time (in cycles) at which activity begins
+    int t_off;			// Time (in cycles) at which activity ends
+    int t_period;   // Period after which activity starts again
+    //! Noxim <-> Cache modified
+    int tensor_size;     // Read (request data size) / Write (write data size)
+    int req_type;
+    uint64_t req_addr;
+    bool used;
+    //! For AIonChip HW sync
+    int tensor_id;
+    int depend_tensor_num;
+    int depend_tenosr_id_1;
+    int depend_tenosr_id_2;
+    int depend_tenosr_id_3;
+    int depend_tenosr_id_4;
+};
 
-  int count;      // Packet count(amount) to be transmitted - AddDate: 2023/04/02
-  int isReqt;     // Packet inject to Reqt / Data NoC - AddDate: 2023/05/02
-  //! Noxim <-> Cache modified
-  uint64_t req_addr;
-  uint32_t* req_data;
-  int req_size;     // Read (request data size) / Write (write data size)
-  int req_type;
-  int finish;      // To indicate if NOXIM process is finished
+struct tensorDependcyTable {
+  string tensor_name;
+  bool return_flag;
 };
 
 // Packet -- Packet definition
@@ -78,54 +106,65 @@ struct Packet
     int dst_id;
     int vc_id;
     //! Modified
-    int finish;      // To check if NOXIM process is finished
+    //* Packet size = flit number(1~16) => The packet size will be specified in packet generation
+    //* Flit size = 1~8 words? or 8 words?
+    //* Flit should have req_addr(uint64_t), req_type(bool), req_size(int)
+    //* DataFlit should have req_data(uint32_t*)
+    //! Should flit size be specified? (Is its size fixed?)
+    //! If it is fixed, what happend when R/W data in flit will exceed a cache line?
+    //! e.g., if we writes 8 word at middle of a cache line(suppose 8 words per cache line)
+    //! Different address mapping method may cause different extent of Non-contiguous memory addresses
+    //! Coalesing unit should be implemented to help to merge the flits into one packet to same Cache NIC
     uint32_t packet_id;      // The packet ID
-    vector <Payload> payload; // To store payload(data) for each flit
+    vector <Payload> payload; // To store payload(req) for each flit
+    vector <DataPayload> data_payload; // To store payload(data) for each flit
     //!
     double timestamp; // SC timestamp at packet generation
-    int size;
+    int size;   // flit size
     int flit_left; // Number of remaining flits inside the packet
     bool use_low_voltage_path;
     // Constructors
     Packet() {}
 
-    Packet(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t addr, const uint32_t* data, const int fin, const int req_sz, const int isReqt, const uint32_t pkt_id)
+    Packet(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t* addr, const uint32_t** data, const int req_sz, const int isReqt, const uint32_t pkt_id)
     {
         make(s, d, vc, ts, sz, r, addr, data, fin, req_sz, isReqt, pkt_id);
     }
 
-    void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t addr, const uint32_t* data, const int fin, const int req_sz, const int isReqt, const uint32_t pkt_id)
+    void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t* addr, const uint32_t** data, const int req_sz, const int isReqt, const uint32_t pkt_id)
     {
+        //TODO: Add coalescing unit in this function
         src_id = s;
         dst_id = d;
         vc_id = vc;
-        size = sz;
+        size = sz;  // Packet size = flit number(1~16)
         flit_left = sz;
         timestamp = ts;
         use_low_voltage_path = false;
         //! Modified
-        if(fin)
-            finish = 1;
-        else
-            finish = 0;
         packet_id = pkt_id;
         payload.clear();
+        data_payload.clear();
         for(int i=0;i<sz;i++){
-            Payload p;
-            if(isReqt)
-                p.data = (addr >> (1-i)*32);
-            else
-                p.data = data[i];
-
-            if(r){
-                p.request_size = req_sz;
-                p.read = 1;
+            if(isReqt){
+                Payload p;
+                p.addr = addr[i];
+                if(r){
+                    p.request_size = req_sz;
+                    p.read = 1;
+                }
+                else{
+                    p.request_size = (FLIT_DATA_SIZE/32);
+                    p.read = 0;
+                }
+                payload.push_back(p);
             }
             else{
-                p.request_size = sz;
-                p.read = 0;
+                DataPayload p;
+                for(int j=0; j< (FLIT_DATA_SIZE/32); j++)
+                    p.data[j] = data[i][j];
+                data_payload.push_back(p);
             }
-            payload.push_back(p);
         }
     }
 };
@@ -195,7 +234,6 @@ struct Flit
     int dst_id;
     int vc_id;          // Virtual Channel
     //! Modified
-    int finish;      // To check if NOXIM process is finished
     uint32_t packet_id;      // The packet ID
     //!
     FlitType flit_type; // The flit type (FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL)
@@ -232,13 +270,12 @@ struct DataFlit
     int dst_id;
     int vc_id;
     //! Modified
-    int finish;      // To check if NOXIM process is finished
     uint32_t packet_id;      // The packet ID
+    DataPayload data_payload;
     //!
     FlitType flit_type;
     int sequence_no;
     int sequence_length;
-    Payload payload; // need to fix payload size
     double timestamp;
 
     inline bool operator==(const DataFlit &flit) const
@@ -249,7 +286,7 @@ struct DataFlit
             flit.vc_id == vc_id &&
             flit.sequence_no == sequence_no &&
             flit.sequence_length == sequence_length &&
-            flit.payload == payload &&
+            flit.data_payload == data_payload &&
             flit.timestamp == timestamp);
     }
 };

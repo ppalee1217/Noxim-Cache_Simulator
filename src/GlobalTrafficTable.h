@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <iomanip>
 #include <unistd.h>
+#include <algorithm>
 
 #include "DataStructs.h"
 
