@@ -53,7 +53,7 @@ void NoC::buildCommon()
 				 ++iit)
 		{
 			GlobalParams::hub_for_tile[*iit] = hub_id;
-			// LOG<<"I am hub "<<hub_id<<" and I amconnecting to "<<*iit<<endl;
+			// LOG<<"I am hub "<<hub_id<<" and I am connecting to "<<*iit<<endl;
 		}
 		// for (map<int, int>::iterator it1 = GlobalParams::hub_for_tile.begin(); it1 != GlobalParams::hub_for_tile.end(); it1++ )
 		// LOG<<"it1 first "<< it1->first<< "second"<< it1->second<<endl;
@@ -100,13 +100,13 @@ void NoC::buildCommon()
 		// Currently, an averaged value is used when accounting in Power class methods
 
 		hub[hub_id]->power.configureHub(GlobalParams::flit_size,
-																		GlobalParams::hub_configuration[hub_id].toTileBufferSize,
-																		GlobalParams::hub_configuration[hub_id].fromTileBufferSize,
-																		GlobalParams::flit_size,
-																		GlobalParams::hub_configuration[hub_id].rxBufferSize,
-																		GlobalParams::hub_configuration[hub_id].txBufferSize,
-																		GlobalParams::flit_size,
-																		data_rate_gbs);
+            GlobalParams::hub_configuration[hub_id].toTileBufferSize,
+            GlobalParams::hub_configuration[hub_id].fromTileBufferSize,
+            GlobalParams::flit_size,
+            GlobalParams::hub_configuration[hub_id].rxBufferSize,
+            GlobalParams::hub_configuration[hub_id].txBufferSize,
+            GlobalParams::flit_size,
+            data_rate_gbs);
 	}
 
 	// Check for routing table availability
@@ -2118,7 +2118,7 @@ void NoC::buildMesh()
 		for (int i = 0; i < GlobalParams::mesh_dim_x; i++)
 		{
 			// Create the single TileCache with a proper name
-            if((i+1)%5 == 0){
+            if((i+1)%(int)(log2(PE_NUM)+1) == 0){
                 char tile_name[64];
                 Coord tile_coord;
                 tile_coord.x = i;
@@ -2151,9 +2151,10 @@ void NoC::buildMesh()
                 // Check for traffic table availability
                 if (GlobalParams::traffic_distribution == TRAFFIC_TABLE_BASED)
                 {
-                    t_cache[0][j]->c_nic->traffic_table_NIC = &gttable_nic; // Needed to choose destination
                     //! Modified
+                    // t_cache[0][j]->c_nic->traffic_table_NIC = &gttable_nic; // Needed to choose destination
                     // t_cache[0][j]->c_nic->never_transmit = (gttable_nic.occurrencesAsSource(t_cache[0][j]->c_nic->local_id) == 0);
+                    t_cache[0][j]->c_nic->dependcy_table_NIC = &gdtable_nic;
                     t_cache[0][j]->c_nic->never_transmit = false;
                 }
                 else

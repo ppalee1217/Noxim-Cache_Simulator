@@ -27,6 +27,8 @@
 #include "GlobalTrafficTable.h"
 #include "Utils.h"
 
+#define NEW2D(H, W, TYPE) (TYPE **)new2d(H, W, sizeof(TYPE))
+
 using namespace std;
 
 SC_MODULE(ProcessingElement)
@@ -69,8 +71,28 @@ SC_MODULE(ProcessingElement)
     DataFlit nextDataFlit();
 
     //! Modified
+    int calculatePacketNum(Communication comm, int used_cache_line_num, vector <Payload>* tmpPayloadForEachNIC, vector <DataPayload>* tmpDataPayloadForEachNIC, bool req_type, int flit_num, uint64_t* addr);
+    void transCommToPacket(Communication comm);
+    void checkSentBackPacket();
+    void costFunction();	// The cost function
+    void addWaitTime();
+    void reducePacketNum(int tensor_id);
+    vector <tensorDependcy> tensorDependcyTable;
+    vector < Packet > received_packets;	// Received packets
+    vector < Packet > received_datapackets;  // Received datapackets
+    vector < Packet > packetBuffers; // Received packets without TAIL in buffer
+    vector < Packet > dataPacketBuffers; // Received datapackets without TAIL in buffer
+    sc_mutex req_mutex;
+    sc_mutex data_mutex;
+    sc_mutex dataBuffer_mutex;
+    sc_mutex reqBuffer_mutex;
+    bool wait_read_flag;	// Wait for all required tensor data to be read and sent back
+    bool enable_output;	// Enable output
     time_t t;
-    FILE * _log_packet;
+    bool start_counting_cycle;
+    bool output_compute_fin;
+    int cycle_count;
+    //!
     // Registers
     int local_id;		// Unique identification number
     bool current_level_rx;	// Current level for Alternating Bit Protocol (ABP)
@@ -81,7 +103,7 @@ SC_MODULE(ProcessingElement)
     // Functions
     void rxProcess();		// The receiving process
     void txProcess();		// The transmitting process
-    bool canShot();	// True when the packet must be shot
+    bool canShot(Packet *packet, int isReqt);	// True when the packet must be shot
     Flit nextFlit();	// Take the next flit of the current packet
     Packet trafficTest(int isReqt);	// used for testing traffic
     Packet trafficRandom();	// Random destination distribution
@@ -103,7 +125,7 @@ SC_MODULE(ProcessingElement)
     void setBit(int &x, int w, int v);
     int getBit(int x, int w);
     double log2ceil(double x);
-
+    void* new2d(int h, int w, int size);
     int roulett();
     int findRandomDestination(int local_id,int hops);
     unsigned int getQueueSize() const;
@@ -113,10 +135,19 @@ SC_MODULE(ProcessingElement)
     // Constructor
     SC_CTOR(ProcessingElement) {
         srand((unsigned int) time(&t));
-        std::string str_p = "log_p.txt";
-        const char * name_p = str_p.c_str();
-        _log_packet = fopen(name_p, "a");
-        
+
+        SC_THREAD(addWaitTime);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_THREAD(checkSentBackPacket);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_THREAD(costFunction);
+        sensitive << reset;
+        sensitive << clock.pos();
+
         SC_METHOD(rxProcess);
         sensitive << reset;
         sensitive << clock.pos();

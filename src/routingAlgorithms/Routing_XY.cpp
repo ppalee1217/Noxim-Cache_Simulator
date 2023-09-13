@@ -13,6 +13,7 @@ Routing_XY * Routing_XY::getInstance() {
 
 vector<int> Routing_XY::route(Router * router, const RouteData & routeData)
 {
+    // printf("Inside Routing_XY (Req): src id = %d, dst id = %d\n",routeData.current_id, routeData.dst_id);
     Coord current = id2Coord(routeData.current_id);
     Coord destination = id2Coord(routeData.dst_id);
     vector <int> directions;
@@ -32,6 +33,7 @@ vector<int> Routing_XY::route(Router * router, const RouteData & routeData)
 // Data NoC - AddDate: 2023/04/29
 vector<int> Routing_XY::route(DataRouter * router, const RouteData & routeData)
 {
+    // printf("Inside Routing_XY (Data): src id = %d, dst id = %d\n",routeData.current_id, routeData.dst_id);
     Coord current = id2Coord(routeData.current_id);
     Coord destination = id2Coord(routeData.dst_id);
     vector <int> directions;

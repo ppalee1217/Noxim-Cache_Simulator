@@ -35,30 +35,35 @@
 #include <semaphore.h>
 
 #include "DataStructs.h"
-#include "GlobalTrafficTableNIC.h"
+#include "GlobalDependcyTableNIC.h"
 #include "Utils.h"
 
 //! Calculate the size of the packet in runtime
-#define SHM_SIZE 512
 //! packet flit 1~16
 //! flit size 1~8 words
-// src_id(32) | dst_id(32) | packet_id(32) | req(32*2) | data(32*8) | read(32) | request_size(32) | READY(1) | VALID(1) | ACK(1) | FINISH(1)
-//* Total 482 bits
-#define CHECKREADY(p) (*(p + 15) >> 31)
-#define CHECKVALID(p) ((*(p + 15) >> 30) & 0b1)
-#define CHECKACK(p) ((*(p + 15) >> 29) & 0b1)
-#define CHECKREADY(p) (*(p + 15) >> 31)
-#define CHECKVALID(p) ((*(p + 15) >> 30) & 0b1)
-#define CHECKACK(p) ((*(p + 15) >> 29) & 0b1)
-#define CHECKFINISH(p) ((*(p + 15) >> 28) & 0b1)
-#define GETSRC_ID(p) (*p)
-#define GETDST_ID(p) (*(p + 1))
-#define GETPACKET_ID(p) (*(p + 2))
-#define GETREQ(p, pos) (*(p + 3 + pos))
-#define GETDATA(p, pos) (*(p + 5 + pos))
-#define GETREAD(p) (*(p + 13))
-#define GETREQUEST_SIZE(p) (*(p + 14))
-#define GETTEST(p,pos) (*(p + pos))
+//* ready, valid, ack (3-bit) and reserved (29-bit)
+//* src id(uint32_t), dst id(uint32_t), packet id(uint32_t), packet_num(uint32_t), tensor_id(uint32_t), packet_size(uint32_t)
+//! 7*int = 7 word
+//* Payload: addr(uint64_t), req_type(uint32_t), flit_word_num(uint32_t) *16
+//* DataPayload: data(int*8) *16
+//! 16*(uint64_t + 10*int) = 192 word
+//! Total: 199 word = 6368 bit
+#define SHM_SIZE 8192
+#define CHECKREADY(p)               ((*p >> 31) & 0b1)
+#define CHECKVALID(p)               ((*p >> 30) & 0b1)
+#define CHECKACK(p)                 ((*p >> 29) & 0b1)
+#define GETSRC_ID(p)                (*(p + 1))
+#define GETDST_ID(p)                (*(p + 2))
+#define GETPACKET_ID(p)             (*(p + 3))
+#define GETPACKET_NUM(p)            (*(p + 4))
+#define GETTENSOR_ID(p)             (*(p + 5))
+#define GETPACKET_SIZE(p)           (*(p + 6))
+#define GETADDR(p, index)           (static_cast<uint64_t>(*(p + 7 + 12*index)))
+#define GETREQ_TYPE(p, index)       (*(p + 8 + 12*index))
+#define GETFLIT_WORD_NUM(p, index)  (*(p + 9 + 12*index))
+#define GETDATA(p, index, pos)      (static_cast<int>(*(p + 10 + pos + 12*index)))
+
+#define NEW2D(H, W, TYPE) (TYPE **)new2d(H, W, sizeof(TYPE))
 
 using namespace std;
 
@@ -102,14 +107,25 @@ SC_MODULE(CacheNIC)
     DataFlit nextDataFlit();
     // Registers
     //! Modified
+    int get_req_count;
+    int add_traffic_count;
+    vector < CommunicationNIC > traffic_table_NIC;
+    int getTrafficSize();
+    void getPacketinCommunication(const int src_id, CommunicationNIC* comm);
+    void addTraffic(uint32_t src_id, uint32_t dst_id, uint32_t packet_id, uint32_t tensor_id,uint64_t* addr,uint32_t* req_type,uint32_t* flit_word_num,int** data, int packet_size);
+    GlobalDependcyTableNIC* dependcy_table_NIC;
     sc_mutex req_mutex;
     sc_mutex data_mutex;
     sc_mutex dataBuffer_mutex;
     sc_mutex reqBuffer_mutex;
+    sc_mutex packetQueue_mutex;
+    sc_mutex dataPacketQueue_mutex;
     FILE * _log_w;
     FILE * _log_r;
     FILE * _log_receive;
+    int _packet_count;
     int transcation_count;
+    int sendback_count;
     time_t t;
     //* Note that packet will be push into vector only when TAIL flit is received
     vector < Packet > received_packets;	// Received packets
@@ -117,17 +133,20 @@ SC_MODULE(CacheNIC)
     vector < Packet > packetBuffers; // Received packets without TAIL in buffer
     vector < Packet > dataPacketBuffers; // Received datapackets without TAIL in buffer
     void checkNoCPackets(); // Iterate over the data packet to find the matching packet of the front of request packet
+    void runCoalescingUnit(Packet *packet, Packet *data_packet); // Iterate through packet to sorting which flit should be sent (If read req)
     void checkCachePackets();
     void transaction(Packet req_packet, Packet data_packet); // Send packets to the IPC channel
+    void* new2d(int h, int w, int size);
     //* In order to sent request to IPC channel
-    void setIPC_Data(uint32_t *ptr, uint32_t data, int const_pos, int varied_pos);
-    void setIPC_Valid(uint32_t *ptr);
-    void resetIPC_Valid(uint32_t *ptr);
     void setIPC_Ready(uint32_t *ptr);
-    void resetIPC_Ready(uint32_t *ptr);
+    void setIPC_Valid(uint32_t *ptr);
     void setIPC_Ack(uint32_t *ptr);
+    void resetIPC_Ready(uint32_t *ptr);
+    void resetIPC_Valid(uint32_t *ptr);
     void resetIPC_Ack(uint32_t *ptr);
-    void setIPC_Finish(uint32_t *ptr);
+    void setIPC_Data(uint32_t *ptr, int data, int const_pos, int index);
+    void setIPC_Addr(uint32_t *ptr, uint64_t data, int index);
+    //* Handle the sent back packet
     void addPacketToTraffic();
     //! 
     int local_id;		// Unique identification number
@@ -139,7 +158,7 @@ SC_MODULE(CacheNIC)
     // Functions
     void rxProcess();		// The receiving process
     void txProcess();		// The transmitting process
-    bool canShot(Packet & packet, int isReqt);	// True when the packet must be shot
+    bool canShot(Packet *packet, int isReqt);	// True when the packet must be shot
     Flit nextFlit();	// Take the next flit of the current packet
     Packet trafficTest(int isReqt);	// used for testing traffic
     Packet trafficRandom();	// Random destination distribution
@@ -150,7 +169,6 @@ SC_MODULE(CacheNIC)
     Packet trafficButterfly();	// Butterfly destination distribution
     Packet trafficLocal();	// Random with locality
 
-    GlobalTrafficTableNIC *traffic_table_NIC;	// Reference to the Global traffic Table
     bool never_transmit;	// true if the PE does not transmit any packet 
     //  (valid only for the table based traffic)
 
@@ -178,9 +196,16 @@ SC_MODULE(CacheNIC)
         _log_w = fopen(name_r, "a");
         _log_receive = fopen(name_re, "a");
         transcation_count = 0;
+        _packet_count = 0;
+        sendback_count = 0;
         
-        SC_CTHREAD(checkCachePackets, clock.pos());
-        SC_CTHREAD(checkNoCPackets, clock.pos());
+        SC_THREAD(checkCachePackets);
+        sensitive << reset;
+        sensitive << clock.pos();
+
+        SC_THREAD(checkNoCPackets);
+        sensitive << reset;
+        sensitive << clock.pos();
 
         SC_METHOD(rxProcess);
         sensitive << reset;

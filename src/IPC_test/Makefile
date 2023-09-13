@@ -1,6 +1,6 @@
 CC := g++
 CXX := g++
-CFLAGS := -Wall -pthread -Wextra -std=gnu99 -g -O0
+CFLAGS := -Wall -pthread -Wextra -std=c++11 -g -O0
 CXXFLAGS := -Wall -pthread -std=c++11 -g -O0
 
 CPPFLAGS := -I$(SYSTEMC_ROOT)/include

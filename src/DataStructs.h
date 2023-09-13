@@ -42,9 +42,9 @@ enum FlitType
 // Payload -- Payload definition
 struct Payload
 {
-    uint64_t addr; // Bus for the data to be exchanged
-    int read; // Read or Write packet (Only work when transmitting data to/from memory)
-    uint32_t request_size; // Request size (When read = true, request size should be specified)
+    uint64_t addr;      // Address of the data to be exchanged
+    int read;           // Read or Write packet (Only work when transmitting data to/from memory)
+    int flit_word_num;  // Store flit size for each flit (i.e., the word number this flit requests/contains)
     inline bool operator==(const Payload &payload) const
     {
         return (payload.addr == addr);
@@ -54,7 +54,7 @@ struct Payload
 // DataPayload -- DataPayload definition
 struct DataPayload
 {
-    uint32_t data[8]; // Bus for the data to be exchanged
+    int data[8]; // Data to be exchanged
     inline bool operator==(const DataPayload &data_payload) const
     {
         return (
@@ -68,6 +68,24 @@ struct DataPayload
             data_payload.data[7] == data[7]
             );
     }
+};
+
+// Structure used to store information into the table
+struct CommunicationNIC {
+    int src;			  // ID of the source node (PE)
+    int dst;			  // ID of the destination node (PE)
+    int packet_id;
+    int tensor_id;
+    vector <uint64_t> addr;
+    vector <int> req_type;
+    vector <int> flit_word_num;
+    vector <vector<int>> data;
+    double pir;			// Packet Injection Rate for the link
+    double por;			// Probability Of Retransmission for the link
+    int t_on;			  // Time (in cycles) at which activity begins
+    int t_off;			// Time (in cycles) at which activity ends
+    int t_period;   // Period after which activity starts again
+    bool used;
 };
 
 // Structure used to store information into the table
@@ -86,17 +104,23 @@ struct Communication {
     uint64_t req_addr;
     bool used;
     //! For AIonChip HW sync
+    bool isOutput;
     int tensor_id;
     int depend_tensor_num;
-    int depend_tenosr_id_1;
-    int depend_tenosr_id_2;
-    int depend_tenosr_id_3;
-    int depend_tenosr_id_4;
+    vector <int> depend_tensor_id;
 };
 
-struct tensorDependcyTable {
-  string tensor_name;
+struct tensorDependcy {
+  int tensor_id;
+  int packet_count;
   bool return_flag;
+};
+
+struct tensorDependcyNIC {
+    int tensor_id;
+    int packet_count;
+    int nic_id;
+    bool return_flag;
 };
 
 // Packet -- Packet definition
@@ -106,63 +130,65 @@ struct Packet
     int dst_id;
     int vc_id;
     //! Modified
-    //* Packet size = flit number(1~16) => The packet size will be specified in packet generation
-    //* Flit size = 1~8 words? or 8 words?
-    //* Flit should have req_addr(uint64_t), req_type(bool), req_size(int)
-    //* DataFlit should have req_data(uint32_t*)
-    //! Should flit size be specified? (Is its size fixed?)
-    //! If it is fixed, what happend when R/W data in flit will exceed a cache line?
-    //! e.g., if we writes 8 word at middle of a cache line(suppose 8 words per cache line)
-    //! Different address mapping method may cause different extent of Non-contiguous memory addresses
-    //! Coalesing unit should be implemented to help to merge the flits into one packet to same Cache NIC
+    //* flit size: 1~8 words
+    //* packet number: 1~16
+    int packet_num; // Info Cache/PE that how many packets will be issued for this request(tensor)
     uint32_t packet_id;      // The packet ID
+    int tensor_id;
     vector <Payload> payload; // To store payload(req) for each flit
     vector <DataPayload> data_payload; // To store payload(data) for each flit
+    vector <int> depend_tensor_id;
     //!
-    double timestamp; // SC timestamp at packet generation
-    int size;   // flit size
-    int flit_left; // Number of remaining flits inside the packet
+    double timestamp;   // SC timestamp at packet generation
+    int size;           // flit size(Should contain header flit)
+    int flit_left;      // Number of remaining flits inside the packet
     bool use_low_voltage_path;
     // Constructors
     Packet() {}
 
-    Packet(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t* addr, const uint32_t** data, const int req_sz, const int isReqt, const uint32_t pkt_id)
+    Packet(const int s, const int d, const int vc, const double ts, const int sz, const int r, const int _tensor_id, const uint64_t* addr, int** data, const int* req_wd_num, const int isReqt, const uint32_t pkt_id, const vector <int> _depend_tensor_id, int pkt_num)
     {
-        make(s, d, vc, ts, sz, r, addr, data, fin, req_sz, isReqt, pkt_id);
+        make(s, d, vc, ts, sz, r, _tensor_id, addr, data, req_wd_num, isReqt, pkt_id, _depend_tensor_id, pkt_num);
     }
 
-    void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const uint64_t* addr, const uint32_t** data, const int req_sz, const int isReqt, const uint32_t pkt_id)
+    void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const int _tensor_id, const uint64_t* addr, int** data, const int* req_wd_num, const int isReqt, const uint32_t pkt_id, const vector <int> _depend_tensor_id, int pkt_num)
     {
         //TODO: Add coalescing unit in this function
         src_id = s;
         dst_id = d;
         vc_id = vc;
-        size = sz;  // Packet size = flit number(1~16)
-        flit_left = sz;
+        size = (sz+2);  //* Packet size = flit number(1~16), plus header flit
+        flit_left = (sz+2);
         timestamp = ts;
         use_low_voltage_path = false;
         //! Modified
+        // if(_tensor_id>0){
+        //     printf("PE %d --> PE%d tensor_id: %d\n",s , d ,_tensor_id);
+        // }
+        tensor_id = _tensor_id;
+        packet_num = pkt_num;
         packet_id = pkt_id;
         payload.clear();
         data_payload.clear();
+        depend_tensor_id.clear();
+        depend_tensor_id = _depend_tensor_id;
         for(int i=0;i<sz;i++){
             if(isReqt){
                 Payload p;
                 p.addr = addr[i];
-                if(r){
-                    p.request_size = req_sz;
-                    p.read = 1;
-                }
-                else{
-                    p.request_size = (FLIT_DATA_SIZE/32);
-                    p.read = 0;
-                }
+                p.flit_word_num = req_wd_num[i];
+                (r) ? p.read = 1 : p.read = 0;
                 payload.push_back(p);
             }
             else{
                 DataPayload p;
-                for(int j=0; j< (FLIT_DATA_SIZE/32); j++)
-                    p.data[j] = data[i][j];
+                for(int j=0; j< req_wd_num[i]; j++){
+                    if(data != NULL){
+                        p.data[j] = data[i][j];
+                    }
+                    else
+                        p.data[j] = 0;
+                }
                 data_payload.push_back(p);
             }
         }
@@ -235,11 +261,14 @@ struct Flit
     int vc_id;          // Virtual Channel
     //! Modified
     uint32_t packet_id;      // The packet ID
+    int packet_num;     // Info Cache/PE that how many packets will be issued for this request(tensor)
+    vector <int> depend_tensor_id;
+    int tensor_id;
     //!
+    Payload payload;  // Optional payload
     FlitType flit_type; // The flit type (FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL)
     int sequence_no;    // The sequence number of the flit inside the packet
     int sequence_length;
-    Payload payload;  // Optional payload
     double timestamp; // Unix timestamp at packet generation
     int hop_no;       // Current number of hops from source to destination
     bool use_low_voltage_path;
@@ -287,7 +316,8 @@ struct DataFlit
             flit.sequence_no == sequence_no &&
             flit.sequence_length == sequence_length &&
             flit.data_payload == data_payload &&
-            flit.timestamp == timestamp);
+            flit.timestamp == timestamp
+            );
     }
 };
 

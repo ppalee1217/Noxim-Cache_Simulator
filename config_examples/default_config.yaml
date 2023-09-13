@@ -13,8 +13,8 @@
 #   BUTTERFLY, BASELINE, and OMEGA are Delta Network topologies
 # topology: MESH
 # X and Y mesh sizes
-mesh_dim_x: 5
-mesh_dim_y: 4
+mesh_dim_x: 3
+mesh_dim_y: 2
 # number of flits for each router buffer
 buffer_depth: 4
 # size of flits, in bits
@@ -77,16 +77,20 @@ Hubs:
 # sub-meshes
 
     0:
-      attached_nodes: [0,1,4,5]
-
+      attached_nodes: [0,1]
     1:
-      attached_nodes: [2,3,6,7]
+      attached_nodes: [2,3]
+    # 0:
+    #   attached_nodes: [0,1,4,5]
 
-    2:
-      attached_nodes: [8,9,12,13]
+    # 1:
+    #   attached_nodes: [2,3,6,7]
 
-    3:
-      attached_nodes: [10,11,14,15]
+    # 2:
+    #   attached_nodes: [8,9,12,13]
+
+    # 3:
+    #   attached_nodes: [10,11,14,15]
 
 # Transmission channels configuration
 # each channel modelizes the transmission over a given frequency that
@@ -120,7 +124,8 @@ clock_period_ps: 1000
 # duration of reset signal assertion, expressed in cycles
 reset_time: 1000
 # overal simulation lenght, expressed in cycles
-simulation_time: 1000000000
+# 299792458000000000
+simulation_time: 299792458000000000
 # collect stats after a given number of cycles
 stats_warm_up_time: 0
 # power breakdown, nodes communication details

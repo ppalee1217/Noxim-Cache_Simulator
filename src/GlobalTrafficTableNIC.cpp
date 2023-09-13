@@ -20,35 +20,34 @@ int GlobalTrafficTableNIC::getTrafficSize(){
     return traffic_table_NIC.size();
 }
 
-void GlobalTrafficTableNIC::addTraffic(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type){
-    Communication communication;
-    communication.src = src_id;
-    communication.dst = dst_id;
+void GlobalTrafficTableNIC::addTraffic(uint32_t src_id, uint32_t dst_id, uint32_t packet_id, uint32_t tensor_id,uint64_t* addr, uint32_t* req_type, uint32_t* flit_word_num, int** data, int packet_size){
+    CommunicationNIC comm;
+    comm.src = src_id;
+    comm.dst = dst_id;
     // Default values
-    communication.count = 1;
-    communication.finish = 0;
-    communication.isReqt = isReqt;
-    communication.req_addr = req_addr;
-    printf(":req_addr : %llx\n", req_addr);
-    communication.req_type = req_type;
-    communication.req_data = (uint32_t*) malloc(sizeof(uint32_t)*8);
-    if(!isReqt)
-        for(int i=0;i<8;i++){
-            communication.req_data[i] = req_data[i];
-            printf("req_data[%d] : %x\n", i, req_data[i]);
+    comm.packet_id = packet_id;
+    comm.tensor_id = tensor_id;
+    for(int i=0;i<packet_size;i++){
+        comm.addr.push_back(addr[i]);
+        comm.req_type.push_back(req_type[i]);
+        comm.flit_word_num.push_back(flit_word_num[i]);
+        vector <int> tmp_data;
+        for(int j=0;j<flit_word_num[i];j++){
+            tmp_data.push_back(data[i][j]);    
         }
-    else
-        for(int i=0;i<8;i++)
-            communication.req_data[i] = 0;
-    communication.req_size = req_size;
-    communication.pir = GlobalParams::packet_injection_rate;
-    communication.por = communication.pir;
-    communication.t_on = 0;
-    communication.t_off = GlobalParams::reset_time + GlobalParams::simulation_time;
-    communication.t_period = GlobalParams::reset_time + GlobalParams::simulation_time;
+        comm.data.push_back(tmp_data);
+    }
+    comm.pir = GlobalParams::packet_injection_rate;
+    comm.por = comm.pir;
+    comm.t_on = 0;
+    comm.t_off = GlobalParams::reset_time + GlobalParams::simulation_time;
+    comm.t_period = GlobalParams::reset_time + GlobalParams::simulation_time;
+    comm.used = false;
     pthread_mutex_lock(&mutex);
-    traffic_table_NIC.push_back(communication);
+    traffic_table_NIC.push_back(comm);
+    add_traffic_count++;
     pthread_mutex_unlock(&mutex);
+    // printf("add_traffic_count : %d\n", add_traffic_count);
     return;
 }
 
@@ -62,7 +61,7 @@ double GlobalTrafficTableNIC::getCumulativePirPor(
 	dst_prob.clear();
 	for (unsigned int i = 0; i < traffic_table_NIC.size(); i++)
 	{
-		Communication comm = traffic_table_NIC[i];
+		CommunicationNIC comm = traffic_table_NIC[i];
 		if (comm.src == src_id)
 		{
 			int r_ccycle = ccycle % comm.t_period;
@@ -79,30 +78,46 @@ double GlobalTrafficTableNIC::getCumulativePirPor(
 }
 
 // Get each communication packet counts - AddDate: 2023/04/02
-Communication GlobalTrafficTableNIC::getPacketinCommunication(const int src_id, int isReqt)
+void GlobalTrafficTableNIC::getPacketinCommunication(const int src_id, CommunicationNIC* comm)
 {
+    pthread_mutex_lock(&mutex);
 	for (unsigned int i = 0; i < traffic_table_NIC.size(); i++)
 	{
-        if(traffic_table_NIC[i].count > 0){
-            printf("Traffic table NIC size : %d\n", traffic_table_NIC.size());
-            printf("traffic_table_NIC[%d].src : %d\n", i, traffic_table_NIC[i].src);
-            printf("traffic_table_NIC[%d].count : %d\n", i, traffic_table_NIC[i].count);
-            printf("traffic_table_NIC[%d].isReqt : %d\n", i, traffic_table_NIC[i].isReqt);
-            printf("---------\n");
-        }
-		if (traffic_table_NIC[i].src == src_id && traffic_table_NIC[i].count > 0 && traffic_table_NIC[i].isReqt == isReqt)
+		if (traffic_table_NIC[i].src == src_id && !traffic_table_NIC[i].used)
 		{
-            pthread_mutex_lock(&mutex);
-            traffic_table_NIC[i].count = traffic_table_NIC[i].count - 1;
-            req_count++;
-            traffic_table_NIC[i].finish = req_count;
+            get_req_count++;
+            traffic_table_NIC[i].used = true;
+            comm->src = traffic_table_NIC[i].src;
+            comm->dst = traffic_table_NIC[i].dst;
+            comm->packet_id = traffic_table_NIC[i].packet_id;
+            comm->tensor_id = traffic_table_NIC[i].tensor_id;
+            for(int j=0;j<traffic_table_NIC[i].addr.size();j++){
+                comm->addr.push_back(traffic_table_NIC[i].addr[j]);
+                comm->req_type.push_back(traffic_table_NIC[i].req_type[j]);
+                comm->flit_word_num.push_back(traffic_table_NIC[i].flit_word_num[j]);
+                vector <int> tmp_Data;
+                for(int k=0;k<traffic_table_NIC[i].flit_word_num[j];k++){
+                    tmp_Data.push_back(traffic_table_NIC[i].data[j][k]);
+                }
+                comm->data.push_back(tmp_Data);
+            }
+            comm->pir = traffic_table_NIC[i].pir;
+            comm->por = traffic_table_NIC[i].por;
+            comm->t_on = traffic_table_NIC[i].t_on;
+            comm->t_off = traffic_table_NIC[i].t_off;
+            comm->t_period = traffic_table_NIC[i].t_period;
             pthread_mutex_unlock(&mutex);
-		    return traffic_table_NIC[i];
+            // printf("get_req_count : %d\n", get_req_count);
+            // printf("Traffic table NIC size : %d\n", traffic_table_NIC.size());
+            // printf("traffic_table_NIC[%d].src : %d\n", i, traffic_table_NIC[i].src);
+            // printf("req_count : %d\n", req_count);
+            // printf("---------\n");
+		    return;
         }
     }
-    Communication comm;
-    comm.src = -1;
-	return comm;
+    comm->src = -1;
+    pthread_mutex_unlock(&mutex);
+	return;
 }
 
 int GlobalTrafficTableNIC::occurrencesAsSource(const int src_id)

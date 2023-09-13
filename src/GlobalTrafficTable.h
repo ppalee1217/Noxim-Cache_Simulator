@@ -50,8 +50,7 @@ public:
     int occurrencesAsSource(const int src_id);
     pthread_mutex_t mutex;
     int req_count = 0;
-    Communication getPacketinCommunication(const int src_id, int isReqt);
-    void addTraffic(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type);
+    Communication getPacketinCommunication(const int src_id, bool enable_output);
 
 private:
     vector < Communication > traffic_table;

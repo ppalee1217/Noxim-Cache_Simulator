@@ -58,7 +58,7 @@ void Router::rxProcess()
 
 		    // Store the incoming flit in the circular buffer
 		    buffer[i][vc].Push(received_flit);
-		    // LOG << " Flit " << received_flit << " collected from Input[" << i << "][" << vc <<"]" << endl << endl;
+		    // LOG << " Flit " << received_flit << "collected from Input[" << i << "][" << vc <<"]" << endl << endl;
 
 		    power.bufferRouterPush();
 
@@ -127,7 +127,7 @@ void Router::txProcess()
 						// prepare data for routing
 						RouteData route_data;
 						route_data.current_id = local_id;
-						//LOG<< "current_id= "<< route_data.current_id <<" for sending " << flit << endl;
+						// LOG<< "current_id = "<< route_data.current_id <<" for sending " << flit << endl;
 						route_data.src_id = flit.src_id;
 						route_data.dst_id = flit.dst_id;
 						route_data.dir_in = i;
@@ -447,7 +447,7 @@ vector < int > Router::routingFunction(const RouteData & route_data)
 	}
 	// TODO: fix all the deprecated verbose mode logs
 	if (GlobalParams::verbose_mode > VERBOSE_OFF)
-		LOG << "Wired routing for dst = " << route_data.dst_id << endl;
+		// LOG << "Wired routing for dst = " << route_data.dst_id << endl;
 
 	// not wireless direction taken, apply normal routing
 	return routingAlgorithm->route(this, route_data);

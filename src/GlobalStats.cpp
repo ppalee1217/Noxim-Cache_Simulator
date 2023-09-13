@@ -83,6 +83,7 @@ double GlobalStats::getMaxDelay(int isReqt)
 
 double GlobalStats::getMaxDelay(const int node_id, int isReqt)
 {
+    printf("Inside GlobalStats::getMaxDelay: src_id = %d\n", node_id);
 	Coord coord = id2Coord(node_id);
 
 	unsigned int received_packets;

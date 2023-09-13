@@ -34,6 +34,9 @@ class GlobalTrafficTableNIC {
 
 public:
     GlobalTrafficTableNIC(); 
+    int get_req_count = 0;
+    int add_traffic_count = 0;
+    pthread_mutex_t mutex;
     // Returns the cumulative pir por along with a vector of pairs. The
     // first component of the pair is the destination. The second
     // component is the cumulative shotting probability.
@@ -41,17 +44,15 @@ public:
     const int ccycle,
     const bool pir_not_por,
     vector < pair < int, double > > &dst_prob);
-    int getTrafficSize();
     // Returns the number of occurrences of soruce src_id in the traffic
     // table
     int occurrencesAsSource(const int src_id);
-    pthread_mutex_t mutex;
-    int req_count = 0;
-    Communication getPacketinCommunication(const int src_id, int isReqt);
-    void addTraffic(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type);
+    int getTrafficSize();
+    void getPacketinCommunication(const int src_id, CommunicationNIC* comm);
+    void addTraffic(uint32_t src_id, uint32_t dst_id, uint32_t packet_id, uint32_t tensor_id,uint64_t* addr,uint32_t* req_type,uint32_t* flit_word_num,int** data, int packet_size);
 
 private:
-    vector < Communication > traffic_table_NIC;
+    vector < CommunicationNIC > traffic_table_NIC;
 };
 
 #endif

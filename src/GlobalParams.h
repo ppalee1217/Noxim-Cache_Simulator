@@ -98,10 +98,12 @@ using namespace std;
 #define REQ_PACKET_SIZE 64
 // Cache Config
 #define ADDR_MAPPING_MODE 0
-#define BANK_NUM 4
+#define BANK_NUM 8
 #define CACHE_SIZE 65536
 #define CACHE_WAYS 8
 #define CACHE_BLOCK_SIZE 32
+#define PE_NUM 4
+#define FLIT_BIT_MASK(ADDR) ((ADDR) & ~((int64_t)0b11111))
 
 typedef struct {
     pair<double, double> ber;
@@ -177,9 +179,9 @@ struct GlobalParams {
     static string config_filename;
     static string power_config_filename;
     static int clock_period_ps;
-    static int simulation_time;
+    static unsigned long long simulation_time;
     static int n_virtual_channels;
-    static int reset_time;
+    static unsigned long long reset_time;
     static int stats_warm_up_time;
     static int rnd_generator_seed;
     static bool detailed;

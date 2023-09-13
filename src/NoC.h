@@ -16,7 +16,7 @@
 #include "TileCache.h"
 #include "GlobalRoutingTable.h"
 #include "GlobalTrafficTable.h"
-#include "GlobalTrafficTableNIC.h"
+#include "GlobalDependcyTableNIC.h"
 #include "Hub.h"
 #include "Channel.h"
 #include "TokenRing.h"
@@ -97,7 +97,7 @@ public:
     // Global tables
     GlobalRoutingTable grtable;
     GlobalTrafficTable gttable;
-    GlobalTrafficTableNIC gttable_nic;
+    GlobalDependcyTableNIC gdtable_nic;
 
     // Constructor
 

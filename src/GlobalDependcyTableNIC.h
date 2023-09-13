@@ -30,15 +30,16 @@
 
 using namespace std;
 
-class GlobalTraceTable {
+class GlobalDependcyTableNIC {
 
 public:
-    GlobalTraceTable(); 
+    GlobalDependcyTableNIC(); 
+    void addDependcy(tensorDependcyNIC tensorDependcyNIC);
+    void reducePacketNum(int local_id, int tensor_id, int packet_num);
+    bool checkDependcyReturn(int tensor_id);
     pthread_mutex_t mutex;
-    void addTrace(int src_id, int dst_id, int isReqt, int req_size, uint64_t req_addr, uint32_t* req_data, bool req_type);
-    int GlobalTraceTable::checkTrace(string traceName);
 private:
-    vector < Communication > trace_table;
+    vector <tensorDependcyNIC> NIC_dependcy_table;
 };
 
 #endif
