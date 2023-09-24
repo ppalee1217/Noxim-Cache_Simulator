@@ -1,0 +1,6 @@
+[submodule "traffic/top-level-loadable"]
+	path = traffic/top-level-loadable
+	url = https://aionchip.computing.ncku.edu.tw:4001/daniel100373/top-level-loadable/tree/dev/parser/top_level_loadable
+[submodule "src/Cache_Simulator"]
+	path = src/Cache_Simulator
+	url = https://github.com/ppalee1217/Cache_Simulator
