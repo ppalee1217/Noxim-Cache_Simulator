@@ -1,6 +1,7 @@
 # external repository
 libs/
 bin/build
+bin/noxim
 traffic/top_level_loadable
 *.exe
 *.out
