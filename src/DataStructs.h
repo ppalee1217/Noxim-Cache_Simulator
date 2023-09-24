@@ -153,7 +153,6 @@ struct Packet
 
     void make(const int s, const int d, const int vc, const double ts, const int sz, const int r, const int _tensor_id, const uint64_t* addr, int** data, const int* req_wd_num, const int isReqt, const uint32_t pkt_id, const vector <int> _depend_tensor_id, int pkt_num)
     {
-        //TODO: Add coalescing unit in this function
         src_id = s;
         dst_id = d;
         vc_id = vc;
@@ -162,9 +161,6 @@ struct Packet
         timestamp = ts;
         use_low_voltage_path = false;
         //! Modified
-        // if(_tensor_id>0){
-        //     printf("PE %d --> PE%d tensor_id: %d\n",s , d ,_tensor_id);
-        // }
         tensor_id = _tensor_id;
         packet_num = pkt_num;
         packet_id = pkt_id;
@@ -172,6 +168,7 @@ struct Packet
         data_payload.clear();
         depend_tensor_id.clear();
         depend_tensor_id = _depend_tensor_id;
+        //!
         for(int i=0;i<sz;i++){
             if(isReqt){
                 Payload p;

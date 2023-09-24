@@ -1,13 +1,3 @@
-/*
- * Noxim - the NoC Simulator
- *
- * (C) 2005-2018 by the University of Catania
- * For the complete list of authors refer to file ../doc/AUTHORS.txt
- * For the license applied to these sources refer to file ../doc/LICENSE.txt
- *
- * This file contains the implementation of the processing element
- */
-
 #include "CacheNIC.h"
 
 void* CacheNIC::new2d(int h, int w, int size)
@@ -53,11 +43,6 @@ void CacheNIC::getPacketinCommunication(const int src_id, CommunicationNIC* comm
             comm->t_on = traffic_table_NIC[i].t_on;
             comm->t_off = traffic_table_NIC[i].t_off;
             comm->t_period = traffic_table_NIC[i].t_period;
-            // printf("get_req_count : %d\n", get_req_count);
-            // printf("Traffic table NIC size : %d\n", traffic_table_NIC.size());
-            // printf("traffic_table_NIC[%d].src : %d\n", i, traffic_table_NIC[i].src);
-            // printf("req_count : %d\n", req_count);
-            // printf("---------\n");
 		    return;
         }
     }
@@ -90,7 +75,6 @@ void CacheNIC::addTraffic(uint32_t src_id, uint32_t dst_id, uint32_t packet_id, 
     comm.used = false;
     traffic_table_NIC.push_back(comm);
     add_traffic_count++;
-    // printf("(NIC%d) add_traffic_count : %d\n", local_id, add_traffic_count);
     return;
 }
 
@@ -128,7 +112,6 @@ void CacheNIC::rxProcess()
                 reqBuffer_mutex.lock();
                 packetBuffers.push_back(packet_tmp);
                 reqBuffer_mutex.unlock();
-                // printf("Receive packet id %d HEAD\n", flit_tmp.packet_id);
             }
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
                 reqBuffer_mutex.lock();
@@ -139,7 +122,6 @@ void CacheNIC::rxProcess()
                     }
                 }
                 reqBuffer_mutex.unlock();
-                // printf("Receive packet id %d BODY\n", flit_tmp.packet_id);
             }
             if (flit_tmp.flit_type == FLIT_TYPE_TAIL){
                 reqBuffer_mutex.lock();
@@ -152,7 +134,6 @@ void CacheNIC::rxProcess()
                     }
                 }
                 reqBuffer_mutex.unlock();
-                // printf("Receive packet id %d TAIL\n", flit_tmp.packet_id);
             }
         }
         ack_rx.write(current_level_rx);
@@ -181,8 +162,6 @@ void CacheNIC::txProcess()
                 transmittedAtPreviousCycle = false;
                 datatransmittedAtPreviousCycle = false;
             }
-            // printf("Packet queue size of NIC %d = %d\n", local_id%(int)log2(PE_NUM), packet_queue.size());
-            // printf("Data packet queue size of NIC %d = %d\n", local_id%(int)log2(PE_NUM), datapacket_queue.size());
         }
         else{
             Packet packet;
@@ -206,7 +185,6 @@ void CacheNIC::txProcess()
                 current_level_tx = 1 - current_level_tx; // Negate the old value for Alternating Bit Protocol (ABP)
                 req_tx.write(current_level_tx);
             }
-            // printf("Request queue size of NIC %d = %d\n", local_id%(int)log2(PE_NUM), packet_queue.size());
         }
     }
 }
@@ -241,12 +219,6 @@ Flit CacheNIC::nextFlit()
     else{
         flit.payload = packet.payload[flit.sequence_no-1];
     }
-    // cout << "==========" << endl;
-    // cout << "CacheNIC " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
-    // cout << "Flit type: " << flit.flit_type << endl;
-    // cout << "Sequence number: " << flit.sequence_no << endl;
-    // cout << "Sent request: 0x" << std::hex << flit.payload.data << std::dec << endl;
-    // cout << "==========" << endl;
     flit.hub_relay_node = NOT_VALID;
     packetQueue_mutex.lock();
     packet_queue.front().flit_left--;
@@ -336,17 +308,11 @@ void CacheNIC::checkCachePackets()
             uint32_t* flit_word_num = (uint32_t*)malloc(16*sizeof(uint32_t));
             int** data = NEW2D(16, 8, int);
             bool ready, valid, ack;
-            // cout << "=====================" << endl;
-            // cout << "<< Start transaction with Cache (Reader: " << nic_id << ") >>" << endl;
-            // cout << "SHM_NAME_CACHE: " << shm_name << endl;
-            // cout << "Wait for IPC channel to set valid signal." << endl << endl;
             //* Reading from shared memory object
             while(CHECKVALID(ptr) != 1){
-                // printf("(%dR) Waiting for IPC channel to set valid signal.\n", nic_id);
                 setIPC_Ready(ptr); // Set ready signal
                 wait();
             }
-            // cout << "<<Start transaction with IPC (Read)>>" << endl;
             ready = CHECKREADY(ptr);
             valid = CHECKVALID(ptr);
             resetIPC_Ready(ptr);
@@ -364,34 +330,19 @@ void CacheNIC::checkCachePackets()
                     data[i][j] = GETDATA(ptr, i, j);
                 }
             }
-            // cout << "====================" << endl;
-            // cout << "<<Request from Reader " << nic_id << " received!>>" << endl;
-            // cout << "src_id = " << src_id << endl;
-            // cout << "dst_id = " << dst_id << endl;
-            // fprintf(_log_r, "------------\n");
-            // fprintf(_log_r, "src_id is: %d\n", src_id);
-            // fprintf(_log_r, "dst_id is: %d\n", dst_id);
-            // fprintf(_log_r, "packet_id is: %u\n", packet_id);
             //* If read request, add traffic to traffic table
             //* Else, reduce the packet number of write request in dependency table
             transcation_count++;
-            // if(local_id%(int)log2(PE_NUM) == 0)
-            // printf("(NIC%d) Senaback transaction count = %d\n", local_id, transcation_count);
             if(req_type[0]){
                 addTraffic(src_id, dst_id, packet_id, tensor_id, addr, req_type, flit_word_num, data, packet_size);
-                // if(local_id%(int)log2(PE_NUM) == 0)
-                //     printf("(NIC%d) Add traffic to traffic table (tensor id %d), transcation_count = %d\n", local_id%(int)log2(PE_NUM), tensor_id, transcation_count);
             }
             else{
                 dependcy_table_NIC->reducePacketNum(local_id, tensor_id, packet_num);
             }
             setIPC_Ack(ptr);
-            // cout << "<<Reader " << nic_id << " Transaction completed!>>" << endl << endl;
             while(CHECKACK(ptr)!=0){
                 wait();
             }
-            // cout << "Traffic Table NIC current size = " << getTrafficSize() << endl;
-            // cout << "=====================" << endl;
         }
         wait();
     }
@@ -407,29 +358,20 @@ void CacheNIC::checkNoCPackets()
         }
         else
         {
-            // cout << "NIC " << (local_id)%(int)log2(PE_NUM) << ":" << endl;
-            // cout << "received packets size: " << received_packets.size() << endl;
-            // cout << "received datapackets size: " << received_datapackets.size() << endl;
-            // cout << "packetBuffers size: " << packetBuffers.size() << endl;
-            // cout << "dataPacketBuffers size: " << dataPacketBuffers.size() << endl;
-            // cout << "----------" << endl;
             if(received_packets.size()!=0 && received_datapackets.size()!=0){
                 bool break_flag = false;
                 for(int j=0; j<received_packets.size();j++){
                     for(int i=0;i<received_datapackets.size();i++){
                         if(received_packets[j].packet_id == received_datapackets[i].packet_id){
-                            // printf("Packet id %d is now in NIC\n", received_packets[j].packet_id);
-                            //! Get packet from received_packets and received_datapackets
+                            //* Get packet from received_packets and received_datapackets
                             req_mutex.lock();
                             data_mutex.lock();
                             Packet req_packet = received_packets[j];
                             Packet data_packet = received_datapackets[i];
                             data_mutex.unlock();
                             req_mutex.unlock();
-                            // if(!req_packet.payload[0].read)
-                            //     printf("(Inside NIC%d From PE%d) Tensor id %d (packet count %d) req type = %d\n", local_id, req_packet.src_id, req_packet.tensor_id, _packet_count, req_packet.payload[0].read);
                             _packet_count++;
-                            //! Check dependency table of this packet (when request is read)
+                            //* Check dependency table of this packet (when request is read)
                             if(req_packet.payload[0].read){
                                 bool continue_flag = false;
                                 for(int k=0;k<req_packet.depend_tensor_id.size();k++){
@@ -444,18 +386,18 @@ void CacheNIC::checkNoCPackets()
                             }
                             //* break flag is used to check only one packet can be sent at a time
                             break_flag = true;
-                            //! Erase packet from received_packets and received_datapackets
+                            //* Erase packet from received_packets and received_datapackets
                             req_mutex.lock();
                             data_mutex.lock();
                             received_packets.erase(received_packets.begin()+j);
                             received_datapackets.erase(received_datapackets.begin()+i);
                             data_mutex.unlock();
                             req_mutex.unlock();
-                            //! Run coalescing unit to repack the packet (when request is read)
+                            //* Run coalescing unit to repack the packet (when request is read)
                             if(req_packet.payload[0].read)
                                 runCoalescingUnit(&req_packet, &data_packet);
                             else{
-                                //! Add request to dependency table of this packet (when request is write)
+                                //* Add request to dependency table of this packet (when request is write)
                                 tensorDependcyNIC tmp_td;
                                 tmp_td.nic_id = local_id;
                                 tmp_td.tensor_id = req_packet.tensor_id;
@@ -464,19 +406,10 @@ void CacheNIC::checkNoCPackets()
                                 dependcy_table_NIC->addDependcy(tmp_td);
                             }
                             if(req_packet.payload.size() == 0){
-                                // printf("(NIC%d) The coalesced packet (tensor id %d) has no data to send!\n", local_id, req_packet.tensor_id);
                                 break;
                             }
-                            //! Start transaction with Cache
+                            //* Start transaction with Cache
                             transaction(req_packet, data_packet);
-                            // * For debug test (if error occurs when packet number is huge)
-                            // cout << "NIC " << local_id << ":" << endl;
-                            // cout << "received packets size: " << received_packets.size() << endl;
-                            // cout << "received datapackets size: " << received_datapackets.size() << endl;
-                            // cout << "packetBuffers size: " << packetBuffers.size() << endl;
-                            // cout << "dataPacketBuffers size: " << dataPacketBuffers.size() << endl;
-                            // cout << "----------" << endl;
-                            // cout << endl;
                             break;
                         }
                     }
@@ -504,15 +437,12 @@ void CacheNIC::runCoalescingUnit(Packet *packet, Packet *data_packet){
         cache_set_index = (cache_set_index << 1) + 1;
         index_mask = (index_mask << 1) + 1;
     }
-    // printf("(%d NIC) tensor id %d is now in coalescing unit\n", local_id, packet->tensor_id);
-    // printf("(%d NIC) Original packet size = %d\n", local_id, packet->payload.size());
     for(int i=0;i<packet->payload.size();i++){
         cache_set_index = ((packet->payload[i].addr >> (cache_num_offset_bits+2)) & index_mask);
         if(ADDR_MAPPING_MODE == 0){
             unsigned int choose_bank = cache_set_index % BANK_NUM;
             int nic_id = (local_id) % (int)log2(PE_NUM);
             if(choose_bank/4 != nic_id){
-                // printf("Erase packet[%d]\n", i);
                 packet->payload.erase(packet->payload.begin()+i);
                 data_packet->data_payload.erase(data_packet->data_payload.begin()+i);
             }
@@ -522,101 +452,63 @@ void CacheNIC::runCoalescingUnit(Packet *packet, Packet *data_packet){
             unsigned int choose_bank = (packet->payload[i].addr / address_partition);
             int nic_id = (local_id) % (int)log2(PE_NUM);
             if(choose_bank/4 != nic_id){
-                // printf("Erase packet[%d]\n", i);
                 packet->payload.erase(packet->payload.begin()+i);
                 data_packet->data_payload.erase(data_packet->data_payload.begin()+i);
             }
         }
     }
-    // printf("(%d NIC) Coalesced packet size = %d\n", local_id, packet->payload.size());
 }
 
 void CacheNIC::transaction(Packet req_packet, Packet data_packet){
     //* valid, ready, ack (3-bit) and reserved (29-bit)
     //* src id(int), dst id(int), packet id(int), packet_num(int), tensor_id(int), 
-    //! 6*int = 6 word
-    //* Payload: addr(uint64_t), req_type(int), flit_word_num(int) *16
-    //* DataPayload: data(int*8)*16
-    //! 16*(uint64_t + 10*int) = 192 word
+    //! 6 * int = 6 word
+    //* Payload: addr(uint64_t), req_type(int), flit_word_num(int) * 16
+    //* DataPayload: data(int * 8) * 16
+    //! 16 * (uint64_t + 10 * int) = 192 word
     //! Total: 198 word = 6336 bit
     int nic_id = (local_id) % (int)log2(PE_NUM);
     std::string shm_name_tmp = "cache_nic" + std::to_string(nic_id) + "_NOC";
     char *shm_name = new char[shm_name_tmp.size()+1];
     std::strcpy (shm_name, shm_name_tmp.c_str());
-    // cout << "=====================" << endl;
-    // cout << "<< Start transaction with Cache (Writer: " << nic_id << ") >>" << endl;
-    // cout << "SHM_NAME_CACHE: " << shm_name << endl;
-    // cout << "SHM_NAME_NOC: " << shm_name << endl;
     int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
     ftruncate(fd, SHM_SIZE);
     uint32_t* ptr = (uint32_t*)mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     uint32_t ready, valid, ack;
     memset(ptr, 0, SHM_SIZE);
-    // cout << "Waiting for IPC channel to set ready signal." << endl;
     while(CHECKREADY(ptr) != 1){
         wait();
-        // printf("(%dW) Waiting for IPC channel to set ready signal.\n", nic_id);
     }
-    // cout << "IPC channel is ready to read." << endl;
-    //* set src_id
+    // set src_id
     setIPC_Data(ptr, req_packet.src_id, 1, 0);
-    // printf("(%dW) src_id is: %d\n", nic_id, req_packet.src_id);
-    //* set dst_id
+    // set dst_id
     setIPC_Data(ptr, req_packet.dst_id, 2, 0);
-    // printf("(%dW) dst_id is: %d\n", nic_id, req_packet.dst_id);
-    //* set packet_id
+    // set packet_id
     setIPC_Data(ptr, req_packet.packet_id, 3, 0);
-    // printf("(%dW) packet_id is: %u\n", nic_id, req_packet.packet_id);
-    //* set packet_num
+    // set packet_num
     setIPC_Data(ptr, req_packet.packet_num, 4, 0);
-    //* set tensor_id
+    // set tensor_id
     setIPC_Data(ptr, req_packet.tensor_id, 5, 0);
-    // printf("(%dW) tensor_id is: %d\n", nic_id, req_packet.tensor_id);
-    //* set packet size
+    // set packet size
     setIPC_Data(ptr, req_packet.payload.size(), 6, 0);
-    // printf("(%dW) packet size is: %d\n", nic_id, req_packet.payload.size());
     for(int i=0;i<req_packet.payload.size();i++){
-        //* set request addr
+        // set request addr
         setIPC_Addr(ptr, req_packet.payload[i].addr, i);
-        // printf("(%dW) addr[%d] is: 0x%08x\n", nic_id, i, req_packet.payload[i].addr);
-        //* set request type
+        // set request type
         setIPC_Data(ptr, req_packet.payload[i].read, 8, i);
-        // printf("(%dW) req_type[%d] is: %d\n", nic_id, i, req_packet.payload[i].read);
-        //* set flit_word_num
+        // set flit_word_num
         setIPC_Data(ptr, req_packet.payload[i].flit_word_num, 9, i);
-        // printf("(%dW) flit_word_num[%d] is: %d\n", nic_id, i, req_packet.payload[i].flit_word_num);
         for(int j=0;j<req_packet.payload[i].flit_word_num;j++){
-            //* set request data
+            // set request data
             setIPC_Data(ptr, data_packet.data_payload[i].data[j], 10+j, i);
-            // printf("(%dW) data[%d][%d] is: 0x%08x\n", nic_id, i, j, req_packet.payload[i].data[j]);
         }
-        // printf("----------------\n");
     }
-    // printf("(%dW) Transaction count = %d\n", nic_id, transcation_count);
-    // fprintf(_log_w, "------------\n");
-    // fprintf(_log_w, "src_id is: %d\n", req_packet.src_id);
-    // fprintf(_log_w, "dst_id is: %d\n", req_packet.dst_id);
-    // fprintf(_log_w, "packet_id is: %u\n", req_packet.packet_id);
-    // for(int i=0;i<(REQ_PACKET_SIZE/32);i++){
-    //     fprintf(_log_w, "addr[%d] is: 0x%08x\n", i, req_packet.payload[i].data);
-    // }
-    // for(int i=0;i<(DATA_PACKET_SIZE/32);i++){
-    //     fprintf(_log_w, "data[%d] is: 0x%08x\n", i, data_packet.payload[i].data);
-    // }
-    // fprintf(_log_w, "packet timestamp is: %d\n", req_packet.timestamp);
-    // fprintf(_log_w, "datapacket timestamp is: %d\n", data_packet.timestamp);
-    // fprintf(_log_w, "(%d) Transaction count = %d\n", local_id, transcation_count);
     //* set valid
     setIPC_Valid(ptr);
-    // cout << "Wait for IPC channel to set ack signal." << endl;
-    // cout << "(Writer) Address = " << std::hex << ptr << std::dec << endl;
     while(CHECKACK(ptr) != 1){
         wait();
     }
     resetIPC_Ack(ptr);
-    // cout << "IPC channel ack signal is sent back." << endl;
-    // cout << "<Writer " << nic_id << " Transaction completed!>" << endl;
-    // cout << "=====================" << endl;
     resetIPC_Valid(ptr);
     return;
 }
@@ -692,7 +584,6 @@ void CacheNIC::datatxProcess()
                 datacurrent_level_tx = 1 - datacurrent_level_tx;
                 datareq_tx.write(datacurrent_level_tx);
             }
-            // printf("Data queue size of NIC %d = %d\n", local_id, datapacket_queue.size());
         }
     }
 }
@@ -723,12 +614,6 @@ DataFlit CacheNIC::nextDataFlit()
     else{
         flit.data_payload = packet.data_payload[flit.sequence_no-1];
     }
-    // cout << "==========" << endl;
-    // cout << "CacheNIC " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
-    // cout << "Flit type: " << flit.flit_type << endl;
-    // cout << "Sequence number: " << flit.sequence_no << endl;
-    // cout << "Sent data: 0x" << std::hex << flit.payload.data << std::dec << endl;
-    // cout << "==========" << endl;
     dataPacketQueue_mutex.lock();
     datapacket_queue.front().flit_left--;
     if (datapacket_queue.front().flit_left == 0)
@@ -757,8 +642,6 @@ bool CacheNIC::canShot(Packet *packet, int isReqt)
             threshold = GlobalParams::packet_injection_rate;
         else
             threshold = GlobalParams::probability_of_retransmission;
-        // shot = (local_id == 19);
-        // shot = (((double)rand()) / RAND_MAX < threshold) && (local_id == 19);
         if (shot)
         {
             if (GlobalParams::traffic_distribution == TRAFFIC_RANDOM)
@@ -821,9 +704,6 @@ bool CacheNIC::canShot(Packet *packet, int isReqt)
             packetQueue_mutex.unlock();
             dataPacketQueue_mutex.unlock();
             sendback_count++;
-            // printf("CacheNIC %d (Tile %d) traffic to packet count = %d\n", (local_id)%(int)log2(PE_NUM), local_id, sendback_count);
-            // printf("CacheNIC %d (Tile %d) sent packet id %d (tensor id %d) to PE %d\n", (local_id)%(int)log2(PE_NUM), local_id, comm.packet_id, comm.tensor_id, comm.dst);
-            // printf("-------\n");
             shot = true;
         }
         else
@@ -947,7 +827,8 @@ Packet CacheNIC::trafficRandom()
 
     return p;
 }
-// TODO: for testing only
+
+//! For testing only (Deprecated)
 Packet CacheNIC::trafficTest(int isReqt)
 {
     Packet p;

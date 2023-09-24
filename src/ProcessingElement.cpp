@@ -56,7 +56,6 @@ void ProcessingElement::rxProcess()
                 reqBuffer_mutex.lock();
                 packetBuffers.push_back(packet_tmp);
                 reqBuffer_mutex.unlock();
-                // printf("PE %d received a sendback req packet from NIC %d\n", local_id, (flit_tmp.src_id%(int)log2(PE_NUM)));
             }
             if (flit_tmp.flit_type == FLIT_TYPE_BODY){
                 reqBuffer_mutex.lock();
@@ -123,7 +122,6 @@ void ProcessingElement::txProcess()
         {
             if (!packet_queue.empty())
             {
-                // printf("Sent packet out!\n");
                 Flit flit = nextFlit();                  // Generate a new flit
                 flit_tx->write(flit);                    // Send the generated flit
                 current_level_tx = 1 - current_level_tx; // Negate the old value for Alternating Bit Protocol (ABP)
@@ -163,12 +161,6 @@ Flit ProcessingElement::nextFlit()
     else{
         flit.payload = packet.payload[flit.sequence_no-1];
     }
-    // cout << "==========" << endl;
-    // cout << "PE " << std::dec << local_id << " sent a request flit to PE " << flit.dst_id << endl;
-    // cout << "Flit type: " << flit.flit_type << endl;
-    // cout << "Sequence number: " << flit.sequence_no << endl;
-    // cout << "Addr: 0x" << std::hex << flit.payload.addr << std::dec << endl;
-    // cout << "==========" << endl;
 
     flit.hub_relay_node = NOT_VALID;
 
@@ -294,12 +286,6 @@ DataFlit ProcessingElement::nextDataFlit()
     else{
         flit.data_payload = packet.data_payload[flit.sequence_no-1];
     }
-    // cout << "==========" << endl;
-    // cout << "PE " << std::dec << local_id << " sent a data flit to PE " << flit.dst_id << endl;
-    // cout << "Flit type: " << flit.flit_type << endl;
-    // cout << "Sequence number: " << flit.sequence_no << endl;
-    // cout << "Sent data: 0x" << std::hex << flit.payload.data << std::dec << endl;
-    // cout << "==========" << endl;
 
     datapacket_queue.front().flit_left--;
 
@@ -397,13 +383,6 @@ void ProcessingElement::checkSentBackPacket(){
         }
         else
         {
-            // cout << "PE " << local_id << ":" << endl;
-            // cout << "received packets size: " << received_packets.size() << endl;
-            // cout << "received datapackets size: " << received_datapackets.size() << endl;
-            // cout << "packetBuffers size: " << packetBuffers.size() << endl;
-            // cout << "dataPacketBuffers size: " << dataPacketBuffers.size() << endl;
-            // cout << "----------" << endl;
-            // cout << endl;
             if(received_packets.size()!=0 && received_datapackets.size()!=0){
                 bool break_flag = false;
                 for(int j=0; j<received_packets.size();j++){
@@ -414,13 +393,6 @@ void ProcessingElement::checkSentBackPacket(){
                             data_mutex.lock();
                             Packet req_packet = received_packets[j];
                             Packet data_packet = received_datapackets[i];
-                            // cout << "PE " << local_id << ":" << endl;
-                            // cout << "received packets size: " << received_packets.size() << endl;
-                            // cout << "received datapackets size: " << received_datapackets.size() << endl;
-                            // cout << "packetBuffers size: " << packetBuffers.size() << endl;
-                            // cout << "dataPacketBuffers size: " << dataPacketBuffers.size() << endl;
-                            // printf("Packet id %d (tensor id %d) is sent back from Tile %d (NIC%d)\n", req_packet.packet_id, req_packet.tensor_id, req_packet.src_id, (local_id)%(int)log2(PE_NUM));
-                            // cout << "----------" << endl;
                             //! Erase packet from received_packets and received_datapackets
                             received_packets.erase(received_packets.begin()+j);
                             received_datapackets.erase(received_datapackets.begin()+i);
@@ -450,24 +422,21 @@ void ProcessingElement::reducePacketNum(int tensor_id){
                 std::cerr << "There must be a miscalculation of this tensor. Exiting the program. " << std::endl;
                 exit(EXIT_FAILURE); // Terminate the program with a failure exit code
             }
-            // if(tensorDependcyTable[i].packet_count<=10)
-            //     printf("(PE %d) Packet count of tensor id %d = %d\n", local_id, tensor_id, tensorDependcyTable[i].packet_count);
             tensorDependcyTable[i].packet_count--;
             if(tensorDependcyTable[i].packet_count == 0){
                 tensorDependcyTable[i].return_flag = true;
                 printf("Tensor id %d is returned to PE %d\n", tensor_id, local_id);
             }
-            // printf("--------------\n");
         }
     }
 }
 
 void ProcessingElement::addWaitTime(){
-    //! Only support 3-level layer output tensor for now
+    //! Only support 3-level subgraph layer output tensor for now
     // layer 1: 53295115776.0
     // layer 2: 2576086016.0
     // layer 3: 3058578432.0
-    //* Wait time was simplified to 1/100000 of the original cycle required
+    //* Wait time was simplified to 1/10000 of the original cycle required
     int w_tensor_count = 0;
     int wait_time[3] = {5329511,257608,305857};
     int temp = 0;
@@ -522,28 +491,23 @@ void ProcessingElement::costFunction() {
                     continue;
                 }
                 // TODO: Run cost function
-                // printf("PE %d starts to running cost function\n", local_id);
-
-                // Introduce a time-specified wait of 5 seconds
                 start_counting_cycle = true;
                 while(!output_compute_fin){
                     wait();
                 }
                 output_compute_fin = false;
-                if(local_id==1)
-                    printf("PE %d can send output tensor now!\n", local_id);
+                printf("PE %d can send output tensor now!\n", local_id);
                 wait_read_flag = false;
                 enable_output = true;
                 wait(SC_ZERO_TIME);
                 continue;
             }
-            // printf("PE %d wait for data to be sent back\n", local_id);
         }
         wait();  // Wait at the end of the loop
     }
 }
 
-//TODO: Push multiple packet into queue if coalescing happens
+// Push multiple packet into queue if coalescing happens
 void ProcessingElement::transCommToPacket(Communication comm){
     int used_cache_line_num = ceil((float)comm.tensor_size / (float)32);  // Total cache line that is being used in this request
     double now = sc_time_stamp().to_double() / GlobalParams::clock_period_ps;
@@ -581,7 +545,6 @@ void ProcessingElement::transCommToPacket(Communication comm){
                     packet.make(comm.src, dst_id, vc, now, flit_num, comm.req_type, comm.tensor_id, addr, NULL, request_word_num, 1, packet_id, comm.depend_tensor_id, packet_num);
                     Packet data_packet;
                     data_packet.make(comm.src, dst_id, vc, now, flit_num, comm.req_type, comm.tensor_id, addr, NULL, request_word_num, 0, packet_id, comm.depend_tensor_id, packet_num);
-                    // printf("PE %d send read packet %d (tensor id %d, packet num %d) to Cache %d\n", local_id, packet_id, comm.tensor_id, packet_num, dst_id);
                     packet_queue.push(packet);
                     datapacket_queue.push(data_packet);
                 }
@@ -594,7 +557,6 @@ void ProcessingElement::transCommToPacket(Communication comm){
             tmpTable.tensor_id = comm.tensor_id;
             tmpTable.return_flag = false;
             tensorDependcyTable.push_back(tmpTable);
-            // printf("Tensor id %d is logged in dependency table (packet count %d) at PE %d\n", comm.tensor_id, packet_count, local_id);
         }
         else{
             //* If write => coalesing unit work in here to distinguish packet sent to same cache tile
@@ -604,7 +566,6 @@ void ProcessingElement::transCommToPacket(Communication comm){
             for(int i=0;i<BANK_NUM/4;i++){
                 int packet_num = ceil((float)tmpPayloadForEachNIC[i].size()/(float)16);
                 int remain_flit_num = tmpPayloadForEachNIC[i].size()%16;
-                // printf("Remain flit num for NIC %d is %d\n", i, remain_flit_num);
                 for(int j=0;j<packet_num;j++){
                     uint64_t* addr = (uint64_t*) malloc(sizeof(uint64_t)*16);
                     int* request_word_num = (int*) malloc(sizeof(int)*16);
@@ -622,7 +583,6 @@ void ProcessingElement::transCommToPacket(Communication comm){
                     int dst_id = log2(PE_NUM)*(i+1) + i;
                     uint32_t packet_id = rand();
                     int vc = randInt(0, GlobalParams::n_virtual_channels - 1);
-                    // printf("PE %d send write packet %010d (tensor id %d, packet num %d, flit num %d) to Cache %d\n", local_id, packet_id, comm.tensor_id, packet_num, flit_num, dst_id);
                     Packet packet;
                     packet.make(comm.src, dst_id, vc, now, flit_num, comm.req_type, comm.tensor_id, addr, data, request_word_num, 1, packet_id, comm.depend_tensor_id, packet_num);
                     Packet data_packet;
@@ -632,14 +592,13 @@ void ProcessingElement::transCommToPacket(Communication comm){
                     free(addr);
                     free(request_word_num);
                 }
-                // printf("-------------\n");
             }
             delete[] tmpPayloadForEachNIC;
             delete[] tmpDataPayloadForEachNIC;
         }
     }
     else{
-        //TODO: This section does not implement completely yet
+        // TODO: This section does not implement completely yet
         //! Only consider the scenario that PE send request to other PE without any dependency table (i.e. no dependency recorded)
         //* R/W data from/to PE
         int packet_num = ceil((float)used_cache_line_num/(float)16);
@@ -665,7 +624,6 @@ void ProcessingElement::transCommToPacket(Communication comm){
             packet.make(comm.src, comm.dst, vc, now, flit_num, comm.req_type, comm.tensor_id, addr, NULL, request_word_num, 1, packet_id, comm.depend_tensor_id, packet_num);
             Packet data_packet;
             data_packet.make(comm.src, comm.dst, vc, now, flit_num, comm.req_type, comm.tensor_id, addr, NULL, request_word_num, 0, packet_id, comm.depend_tensor_id, packet_num);
-            // printf("PE %d send %s packet %d to PE %d\n", local_id, (comm.req_type) ? "read" : "write", packet_id, comm.dst);
             packet_queue.push(packet);
             datapacket_queue.push(data_packet);
             free(addr);
@@ -783,7 +741,6 @@ int ProcessingElement::findRandomDestination(int id, int hops)
 
     int inc_y = rand() % 2 ? -1 : 1;
     int inc_x = rand() % 2 ? -1 : 1;
-    printf("Inside ProcessingElement::findRandomDestination: src id = %d\n", id);
     Coord current = id2Coord(id);
 
     for (int h = 0; h < hops; h++)
@@ -895,7 +852,8 @@ Packet ProcessingElement::trafficRandom()
 
     return p;
 }
-// TODO: for testing only
+
+//! For testing only (Deprecated)
 Packet ProcessingElement::trafficTest(int isReqt)
 {
     Packet p;

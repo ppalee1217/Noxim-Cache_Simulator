@@ -1,13 +1,3 @@
-/*
- * Noxim - the NoC Simulator
- *
- * (C) 2005-2018 by the University of Catania
- * For the complete list of authors refer to file ../doc/AUTHORS.txt
- * For the license applied to these sources refer to file ../doc/LICENSE.txt
- *
- * This file contains the declaration of the processing element
- */
-
 #ifndef __NOXIMCacheNIC_H__
 #define __NOXIMCacheNIC_H__
 
@@ -120,13 +110,9 @@ SC_MODULE(CacheNIC)
     sc_mutex reqBuffer_mutex;
     sc_mutex packetQueue_mutex;
     sc_mutex dataPacketQueue_mutex;
-    FILE * _log_w;
-    FILE * _log_r;
-    FILE * _log_receive;
     int _packet_count;
     int transcation_count;
     int sendback_count;
-    time_t t;
     //* Note that packet will be push into vector only when TAIL flit is received
     vector < Packet > received_packets;	// Received packets
     vector < Packet > received_datapackets;  // Received datapackets
@@ -185,16 +171,6 @@ SC_MODULE(CacheNIC)
     unsigned int getDataQueueSize() const;
     // Constructor
     SC_CTOR(CacheNIC) {
-        srand((unsigned int) time(&t));
-        std::string str_w = "log_w.txt";
-        std::string str_r = "log_r.txt";
-        std::string str_re = "log_receive.txt";
-        const char * name_w = str_w.c_str();
-        const char * name_r = str_r.c_str();
-        const char * name_re = str_re.c_str();
-        _log_r = fopen(name_w, "a");
-        _log_w = fopen(name_r, "a");
-        _log_receive = fopen(name_re, "a");
         transcation_count = 0;
         _packet_count = 0;
         sendback_count = 0;

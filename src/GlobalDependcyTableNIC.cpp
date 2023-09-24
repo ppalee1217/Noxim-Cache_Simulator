@@ -1,13 +1,3 @@
-/*
- * Noxim - the NoC Simulator
- *
- * (C) 2005-2018 by the University of Catania
- * For the complete list of authors refer to file ../doc/AUTHORS.txt
- * For the license applied to these sources refer to file ../doc/LICENSE.txt
- *
- * This file contains the implementation of the global traffic table
- */
-
 #include "GlobalDependcyTableNIC.h"
 
 GlobalDependcyTableNIC::GlobalDependcyTableNIC()
@@ -46,12 +36,6 @@ bool GlobalDependcyTableNIC::checkDependcyReturn(int tensor_id){
     }
     if(check_flag)
         return true;
-    // std::cerr << "The dependcy tensor " << tensor_id << " is not on the list." << std::endl;
-    // printf("Dependcy table list: (checking tensor = %d)\n", tensor_id);
-    // for(int i = 0;i<NIC_dependcy_table.size();i++){
-    //     printf("tensor_id : %d, nic_id : %d, packet_count : %d, return_flag : %d\n", NIC_dependcy_table[i].tensor_id, NIC_dependcy_table[i].nic_id, NIC_dependcy_table[i].packet_count, NIC_dependcy_table[i].return_flag);
-    // }
-    // printf("--------\n");
     return false;
 }
 
@@ -64,7 +48,6 @@ void GlobalDependcyTableNIC::reducePacketNum(int local_id, int tensor_id, int pa
                 std::cerr << "There must be a miscalculation of this tensor. Exiting the program. " << std::endl;
                 exit(EXIT_FAILURE); // Terminate the program with a failure exit code
             }
-            // printf("(NIC%d) Packet count of tensor id %d = %d (total = %d)\n", local_id%(int)log2(PE_NUM), tensor_id, NIC_dependcy_table[i].packet_count, packet_num);
             NIC_dependcy_table[i].packet_count--;
             if(NIC_dependcy_table[i].packet_count == 0){
                 NIC_dependcy_table[i].return_flag = true;

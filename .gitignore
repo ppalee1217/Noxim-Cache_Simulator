@@ -1,5 +1,4 @@
 # external repository
-bin/
 libs/
 bin/build
 traffic/top_level_loadable
